@@ -42,7 +42,7 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
     toast({
       title: "✅ Agregado al carrito",
       description: `${pizza.name} ha sido agregada a tu pedido.`,
-      duration: 750,
+      duration: 550,
     });
   };
 
