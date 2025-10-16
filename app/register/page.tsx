@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/contexts";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,7 +13,9 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
+  const { register } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -20,20 +23,31 @@ export default function RegisterPage() {
       ...prev,
       [name]: value,
     }));
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
+    // Validaciones
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Simulamos un delay para mostrar el loading
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // REDIRIGIR SIEMPRE a la página principal, sin validaciones
+      await register(formData.username, formData.phone, formData.password);
       router.push("/");
-    } catch (error) {
-      console.error("Error:", error);
+    } catch (error: any) {
+      setError(error.message || "Error al crear la cuenta");
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +72,12 @@ export default function RegisterPage() {
           <p className="text-gray-600 text-center mb-8">
             Regístrate para disfrutar de nuestras auténticas pizzas
           </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Campo: Nombre de Usuario */}
@@ -88,10 +108,11 @@ export default function RegisterPage() {
                   id="username"
                   name="username"
                   type="text"
+                  required
                   value={formData.username}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  placeholder="Ingresa tu nombre de usuario"
+                  placeholder="Elige un nombre de usuario"
                   disabled={isLoading}
                 />
               </div>
@@ -125,10 +146,11 @@ export default function RegisterPage() {
                   id="phone"
                   name="phone"
                   type="tel"
+                  required
                   value={formData.phone}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  placeholder="Ingresa tu número de teléfono"
+                  placeholder="Tu número de teléfono"
                   disabled={isLoading}
                 />
               </div>
@@ -162,10 +184,11 @@ export default function RegisterPage() {
                   id="password"
                   name="password"
                   type="password"
+                  required
                   value={formData.password}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  placeholder="Crea una contraseña"
+                  placeholder="Mínimo 6 caracteres"
                   disabled={isLoading}
                 />
               </div>
@@ -199,6 +222,7 @@ export default function RegisterPage() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
+                  required
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
@@ -208,7 +232,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Botón de envío - SIEMPRE ACTIVO (excepto cuando está loading) */}
+            {/* Botón de envío */}
             <button
               type="submit"
               disabled={isLoading}
