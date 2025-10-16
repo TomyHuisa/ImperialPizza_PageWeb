@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext"; // Ajusta la ruta según tu estructura
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user, updateProfile, logout } = useAuth();
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: "UsuarioEjemplo", // Estos datos vendrían de tu sistema de autenticación
-    phone: "+1234567890",
+    username: "",
+    phone: "",
     location: "",
   });
+
+  // Cargar datos del usuario cuando el componente se monta
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || "",
+        phone: user.phone || "",
+        location: user.location || "",
+      });
+    }
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,24 +36,55 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleSaveChanges = (e: React.FormEvent) => {
+  const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    // Simular guardado de cambios
-    setShowSuccessMessage(true);
+    try {
+      await updateProfile({
+        username: formData.username,
+        phone: formData.phone,
+        location: formData.location,
+      });
 
-    // Ocultar mensaje después de 3 segundos y redirigir
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-      router.push("/");
-    }, 1500);
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        router.push("/");
+      }, 1500);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteAccount = () => {
-    // Simular eliminación de cuenta
+    // Aquí deberías implementar la lógica para eliminar la cuenta
+    // Por ahora, solo cerramos sesión
+    logout();
     setShowDeleteConfirm(false);
-    router.push("/register");
+    router.push("/");
   };
+
+  // Si no hay usuario, mostrar mensaje
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            No hay usuario autenticado
+          </h2>
+          <Link
+            href="/login"
+            className="text-red-600 hover:text-red-700 font-medium"
+          >
+            Iniciar sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,7 +113,7 @@ export default function ProfilePage() {
             <h1 className="text-3xl font-bold text-foreground font-serif text-center flex-1">
               Pizzeria Imperial
             </h1>
-            <div className="w-10"></div> {/* Espacio para centrar */}
+            <div className="w-10"></div>
           </div>
         </div>
       </header>
@@ -78,6 +123,16 @@ export default function ProfilePage() {
         <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
           Perfil de Usuario
         </h2>
+
+        {/* Puntos del usuario */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <span className="text-yellow-800 font-medium">Tus puntos:</span>
+            <span className="text-2xl font-bold text-yellow-600">
+              {user.points || 0} pts
+            </span>
+          </div>
+        </div>
 
         <form onSubmit={handleSaveChanges} className="space-y-6">
           {/* Información del usuario */}
@@ -112,7 +167,7 @@ export default function ProfilePage() {
                   type="text"
                   value={formData.username}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-muted"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-background"
                   placeholder="Nombre de usuario"
                 />
               </div>
@@ -144,16 +199,16 @@ export default function ProfilePage() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-muted"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-background"
                   placeholder="Número de teléfono"
                 />
               </div>
             </div>
 
-            {/* Contraseña (solo visual) */}
+            {/* Email (solo lectura) */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Contraseña
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -167,19 +222,19 @@ export default function ProfilePage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                     />
                   </svg>
                 </div>
                 <input
                   type="text"
-                  value="••••••••"
+                  value={user.email}
                   readOnly
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-muted text-muted-foreground"
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                La contraseña no se puede editar desde esta vista
+                El email no se puede modificar
               </p>
             </div>
           </div>
@@ -190,7 +245,7 @@ export default function ProfilePage() {
               Ubicación
             </h3>
             <p className="text-muted-foreground mb-4">
-              Desea agregar su ubicación?
+              ¿Desea agregar su ubicación para entregas?
             </p>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -229,15 +284,16 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             <button
               type="submit"
-              className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+              disabled={isLoading}
+              className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
             >
-              Guardar Cambios
+              {isLoading ? "Guardando..." : "Guardar Cambios"}
             </button>
 
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex-1 bg-destructive text-destructive-foreground py-3 px-4 rounded-lg font-medium hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
+              className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
             >
               Eliminar Cuenta
             </button>
@@ -297,7 +353,7 @@ export default function ProfilePage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                className="flex-1 py-2 px-4 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
+                className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Eliminar
               </button>
