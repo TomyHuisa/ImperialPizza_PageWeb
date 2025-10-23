@@ -39,6 +39,80 @@ class PocketBaseService {
     return PocketBaseService.instance;
   }
 
+  // 🔥 NUEVOS MÉTODOS PARA EL CARRITO - AGREGAR ESTOS
+
+  // Método para obtener una pizza por ID
+  public static async getPizza(pizzaId: string): Promise<any> {
+    const pb = this.getInstance();
+    try {
+      return await pb.collection("pizzas").getOne(pizzaId);
+    } catch (error) {
+      console.error("Error fetching pizza:", error);
+      return null;
+    }
+  }
+
+  // Método para verificar el stock de una pizza
+  public static async checkPizzaStock(pizzaId: string): Promise<number> {
+    try {
+      const pizza = await this.getPizza(pizzaId);
+      return pizza?.stock ?? 0;
+    } catch (error) {
+      console.error("Error checking pizza stock:", error);
+      return 0;
+    }
+  }
+
+  // Método para actualizar el stock de una pizza
+  public static async updatePizzaStock(
+    pizzaId: string,
+    newStock: number
+  ): Promise<any> {
+    const pb = this.getInstance();
+    try {
+      return await pb.collection("pizzas").update(pizzaId, { stock: newStock });
+    } catch (error) {
+      console.error("Error updating pizza stock:", error);
+      throw error;
+    }
+  }
+
+  // Método para crear una orden
+  public static async createOrder(orderData: {
+    user: string;
+    items: any[];
+    total: number;
+    status?: string;
+    customer_notes?: string;
+    delivery_address?: string;
+    phone?: string;
+  }) {
+    const pb = this.getInstance();
+
+    const data = {
+      ...orderData,
+      status: orderData.status || "pending",
+    };
+
+    return await pb.collection("orders").create(data);
+  }
+
+  // Método para obtener órdenes de un usuario
+  public static async getUserOrders(userId: string) {
+    const pb = this.getInstance();
+    try {
+      return await pb.collection("orders").getFullList({
+        filter: `user = "${userId}"`,
+        sort: "-created",
+      });
+    } catch (error) {
+      console.error("Error getting user orders:", error);
+      return [];
+    }
+  }
+
+  // 🔥 FIN DE NUEVOS MÉTODOS
+
   // Método para autenticación con username/phone - OPTIMIZADO
   public static async login(username: string, password: string) {
     const pb = this.getInstance();
@@ -69,9 +143,7 @@ class PocketBaseService {
       // Generar email único
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const tempEmail = `${username
-        .toLowerCase()
-        .replace(/\s+/g, "")}_@pizzeriaimperial.com`;
+      const tempEmail = `${username}@pizzeriaimperial.com`;
 
       // Datos mínimos y correctos para PocketBase
       const data = {
@@ -150,30 +222,6 @@ class PocketBaseService {
   ) {
     const pb = this.getInstance();
     return await pb.collection("users").update(userId, data);
-  }
-
-  public static async createOrder(orderData: {
-    user: string;
-    items: any[];
-    total: number;
-    status: string;
-    points_earned: number;
-  }) {
-    const pb = this.getInstance();
-    return await pb.collection("orders").create(orderData);
-  }
-
-  public static async getUserOrders(userId: string) {
-    const pb = this.getInstance();
-    try {
-      return await pb.collection("orders").getFullList({
-        filter: `user = "${userId}"`,
-        sort: "-created",
-      });
-    } catch (error) {
-      console.error("Error getting user orders:", error);
-      return [];
-    }
   }
 
   public static async getUsers() {

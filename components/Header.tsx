@@ -71,7 +71,7 @@ const Header = () => {
             {/* Mostrar perfil si está autenticado, o login si no lo está */}
             {user ? (
               <Link
-                href="/profile"
+                href="/perfil"
                 className="p-2 rounded-md hover:bg-muted transition-colors flex items-center gap-2"
                 aria-label="Mi perfil"
               >
@@ -226,7 +226,7 @@ const Header = () => {
                   {/* Enlace: Mi Perfil */}
                   <li>
                     <Link
-                      href="/profile"
+                      href="/perfil"
                       className="flex items-center py-2 px-4 rounded-md hover:bg-muted transition-colors text-foreground"
                       onClick={closeSidebar}
                     >

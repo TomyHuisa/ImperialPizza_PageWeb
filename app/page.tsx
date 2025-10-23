@@ -1,113 +1,140 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PizzaCard } from "@/components/pizza-card";
 import PizzaSelector from "@/components/PizzaSelector";
 import Header from "@/components/Header";
+import PocketBaseService from "@/lib/pocketbase";
+import { CartModal } from "@/components/cart-modal";
+import { useCart } from "@/contexts/CartContext"; // Importar el hook del carrito
+
+interface Pizza {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  stock: number;
+  price: number;
+  category: string;
+}
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("clasicas");
+  const [allPizzas, setAllPizzas] = useState<Pizza[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pizzas = [
-    {
-      id: 1,
-      name: "Margherita Clásica",
-      description:
-        "Salsa de tomate San Marzano, mozzarella fresca, albahaca y aceite de oliva extra virgen",
-      image: "/delicious-margherita-pizza-with-fresh-basil-and-mo.jpg",
-      available: true,
-      price: 12.99,
-      category: "clasicas",
-    },
-    {
-      id: 2,
-      name: "Pepperoni Suprema",
-      description:
-        "Generosas rodajas de pepperoni premium, mozzarella y nuestra salsa especial de tomate",
-      image: "/pepperoni-pizza-with-melted-cheese-and-crispy-pepp.jpg",
-      available: true,
-      price: 14.99,
-      category: "clasicas",
-    },
-    {
-      id: 3,
-      name: "Quattro Formaggi",
-      description:
-        "Mezcla de mozzarella, gorgonzola, parmesano y queso de cabra sobre base blanca",
-      image: "/four-cheese-pizza-with-creamy-white-sauce.jpg",
-      available: false,
-      price: 16.99,
-      category: "especiales",
-    },
-    {
-      id: 4,
-      name: "Prosciutto e Rucola",
-      description:
-        "Jamón prosciutto italiano, rúcula fresca, parmesano en lascas y reducción balsámica",
-      image: "/prosciutto-pizza-with-arugula-and-parmesan-shaving.jpg",
-      available: true,
-      price: 17.99,
-      category: "especiales",
-    },
-    {
-      id: 5,
-      name: "Diavola Picante",
-      description:
-        "Salami picante, jalapeños, cebolla roja, mozzarella y aceite de chile calabrés",
-      image: "/spicy-diavola-pizza-with-hot-peppers-and-salami.jpg",
-      available: false,
-      price: 15.99,
-      category: "especiales",
-    },
-    // Agregando algunas pizzas vegetarianas de ejemplo
-    {
-      id: 6,
-      name: "Vegetariana Mediterránea",
-      description:
-        "Berenjena asada, pimientos, cebolla caramelizada, aceitunas kalamata y queso feta",
-      image: "/mediterranean-vegetable-pizza.jpg",
-      available: true,
-      price: 15.99,
-      category: "vegetarianas",
-    },
-    {
-      id: 7,
-      name: "Hortalizas Frescas",
-      description:
-        "Calabacín, champiñones, espinacas, tomate fresco y mozzarella de búfala",
-      image: "/fresh-vegetable-pizza.jpg",
-      available: true,
-      price: 14.99,
-      category: "vegetarianas",
-    },
-  ];
+  // Estados para el modal del carrito
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [selectedPizza, setSelectedPizza] = useState<Pizza | null>(null);
+  const [cartComment, setCartComment] = useState("");
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-  };
+  // Usar el contexto del carrito
+  const { addToCart } = useCart();
 
-  // Filtrar pizzas según la categoría seleccionada
-  const filteredPizzas = pizzas.filter((pizza) =>
+  // Cargar TODAS las pizzas al inicio
+  useEffect(() => {
+    const loadAllPizzas = async () => {
+      setLoading(true);
+      try {
+        const pb = PocketBaseService.getInstance();
+
+        const records = await pb.collection("pizzas").getFullList({
+          sort: "-popular,name",
+        });
+
+        const pizzasData = records.map((record: any) => ({
+          id: record.id,
+          name: record.name,
+          description: record.description,
+          category: record.category,
+          price: record.price,
+          image: record.image
+            ? pb.files.getUrl(record, record.image)
+            : "/placeholder.svg",
+          stock: record.stock,
+        }));
+
+        setAllPizzas(pizzasData);
+      } catch (error) {
+        console.error("Error loading pizzas:", error);
+        setAllPizzas([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllPizzas();
+  }, []);
+
+  // Filtrar pizzas localmente por categoría
+  const filteredPizzas = allPizzas.filter((pizza) =>
     selectedCategory === "personaliza"
       ? false
       : pizza.category === selectedCategory
   );
 
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  // Función para abrir el modal cuando se hace clic en "Agregar al Carrito"
+  const handleAddToCartClick = (pizza: Pizza) => {
+    if (pizza.stock <= 0) return;
+
+    setSelectedPizza(pizza);
+    setCartComment("");
+    setIsCartModalOpen(true);
+  };
+
+  const handleConfirmAddToCart = async () => {
+    if (!selectedPizza) return;
+
+    const success = await addToCart({
+      pizzaId: selectedPizza.id,
+      name: selectedPizza.name,
+      description: selectedPizza.description,
+      price: selectedPizza.price,
+      comment: cartComment,
+      image: selectedPizza.image,
+    });
+
+    if (success) {
+      toast({
+        title: "✅ Agregado al carrito",
+        description: `${selectedPizza.name} ha sido agregada a tu pedido.`,
+        duration: 2000,
+      });
+
+      // Cerrar modal después de agregar
+      setIsCartModalOpen(false);
+      setSelectedPizza(null);
+      setCartComment("");
+    }
+    // Si no fue success, el toast ya se mostró en el contexto
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-12 text-center">
+          Cargando pizzas...
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background">
-      {/* Header actualizado */}
       <Header />
 
-      {/* Contenido principal */}
       <section className="container mx-auto px-4 py-12">
-        {/* Selector de categorías de pizza */}
         <PizzaSelector onCategoryChange={handleCategoryChange} />
 
         <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
           Nuestras Pizzas
         </h2>
 
-        {/* Mostrar contenido según la categoría seleccionada */}
         {selectedCategory === "personaliza" ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <h3 className="text-2xl font-bold text-foreground mb-4">
@@ -129,15 +156,29 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredPizzas.map((pizza) => (
-              <PizzaCard key={pizza.id} pizza={pizza} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPizzas.map((pizza) => (
+                <PizzaCard
+                  key={pizza.id}
+                  pizza={pizza}
+                  onAddToCart={handleAddToCartClick} // Pasamos la función
+                />
+              ))}
+            </div>
+
+            {filteredPizzas.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground">
+                  No hay pizzas disponibles en la categoría "{selectedCategory}
+                  ".
+                </p>
+              </div>
+            )}
+          </>
         )}
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-border bg-card mt-16">
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-muted-foreground">
@@ -145,6 +186,16 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Modal del carrito */}
+      <CartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
+        pizza={selectedPizza}
+        comment={cartComment}
+        onCommentChange={setCartComment}
+        onConfirm={handleConfirmAddToCart}
+      />
     </main>
   );
 }

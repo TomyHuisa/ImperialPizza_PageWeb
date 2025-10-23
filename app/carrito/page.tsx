@@ -1,21 +1,124 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartItems] = useState<any[]>([]); // Carrito vacío por defecto
+  const { toast } = useToast();
+  const {
+    cartItems,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getTotalPrice,
+    getTotalItems,
+    validateCartStock,
+  } = useCart();
+
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    notes: "",
+  });
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Validar stock al cargar la página
+  useEffect(() => {
+    const validateCart = async () => {
+      if (cartItems.length > 0) {
+        setIsValidating(true);
+        await validateCartStock();
+        setIsValidating(false);
+      }
+    };
+
+    validateCart();
+  }, []);
 
   const handleContinueShopping = () => {
     router.push("/");
   };
 
-  const handleCheckout = () => {
-    // En una implementación real, aquí iría la lógica de checkout
-    alert("Funcionalidad de checkout en desarrollo");
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) return;
+
+    // Validar stock una última vez antes del checkout
+    setIsValidating(true);
+    const isValid = await validateCartStock();
+    setIsValidating(false);
+
+    if (!isValid) {
+      toast({
+        variant: "destructive",
+        title: "❌ Carrito actualizado",
+        description: "Revisa los cambios en tu carrito antes de continuar.",
+      });
+      return;
+    }
+
+    // Validar información mínima
+    if (!customerInfo.phone || !customerInfo.address) {
+      toast({
+        variant: "destructive",
+        title: "❌ Información incompleta",
+        description: "Por favor ingresa tu teléfono y dirección de entrega.",
+      });
+      return;
+    }
+
+    // En una implementación real, aquí iría la lógica de checkout con PocketBase
+    console.log("Realizando pedido:", {
+      items: cartItems,
+      customerInfo,
+      total: getTotalPrice(),
+    });
+
+    toast({
+      title: "✅ Pedido realizado",
+      description:
+        "Tu pedido ha sido creado exitosamente. Te contactaremos pronto.",
+      duration: 3000,
+    });
+
+    // Limpiar carrito después del pedido
+    clearCart();
+
+    // Redirigir a home después de un momento
+    setTimeout(() => {
+      router.push("/");
+    }, 2000);
   };
+
+  const handleInputChange = (field: string, value: string) => {
+    setCustomerInfo((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleUpdateQuantity = async (
+    pizzaId: string,
+    comment: string,
+    newQuantity: number
+  ) => {
+    await updateQuantity(pizzaId, comment, newQuantity);
+  };
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Validando stock...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,7 +147,7 @@ export default function CartPage() {
             <h1 className="text-3xl font-bold text-foreground font-serif text-center flex-1">
               Pizzeria Imperial
             </h1>
-            <div className="w-10"></div> {/* Espacio para centrar */}
+            <div className="text-lg font-semibold">{getTotalItems()} items</div>
           </div>
         </div>
       </header>
@@ -96,41 +199,166 @@ export default function CartPage() {
               </button>
             </div>
           ) : (
-            // Carrito con items (estructura para cuando haya productos)
+            // Carrito con items
             <div className="text-left">
-              {/* Aquí iría la lista de productos cuando el carrito no esté vacío */}
+              {/* Lista de productos */}
               <div className="space-y-4">
-                {/* Ejemplo de item (no visible cuando cartItems está vacío) */}
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src="/margherita.jpg"
-                      alt="Pizza"
-                      className="w-16 h-16 object-cover rounded-md"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        Pizza Margherita
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Cantidad: 1
+                {cartItems.map((item, index) => (
+                  <div
+                    key={`${item.pizzaId}-${item.comment}-${index}`}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-md"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground">
+                          {item.name}
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          {item.description}
+                        </p>
+                        {item.comment && (
+                          <p className="text-sm text-blue-600 mt-1">
+                            <strong>Especificación:</strong> {item.comment}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-2 mt-2">
+                          <button
+                            onClick={() =>
+                              handleUpdateQuantity(
+                                item.pizzaId,
+                                item.comment,
+                                item.quantity - 1
+                              )
+                            }
+                            className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
+                          >
+                            -
+                          </button>
+                          <span className="text-sm w-8 text-center font-medium">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleUpdateQuantity(
+                                item.pizzaId,
+                                item.comment,
+                                item.quantity + 1
+                              )
+                            }
+                            disabled={
+                              item.quantity >= (item.maxStock || item.quantity)
+                            }
+                            className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {item.maxStock && item.maxStock > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Máximo: {item.maxStock} disponibles
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-foreground">
+                        ${(item.price * item.quantity).toFixed(2)}
                       </p>
+                      <p className="text-sm text-muted-foreground">
+                        ${item.price.toFixed(2)} c/u
+                      </p>
+                      <button
+                        onClick={() =>
+                          removeFromCart(item.pizzaId, item.comment)
+                        }
+                        className="text-red-600 hover:text-red-700 text-sm mt-2 transition-colors"
+                      >
+                        Eliminar
+                      </button>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">$12.99</p>
-                    <button className="text-red-600 hover:text-red-700 text-sm">
-                      Eliminar
-                    </button>
+                ))}
+              </div>
+
+              {/* Información del cliente */}
+              <div className="mt-8 p-6 bg-muted rounded-lg">
+                <h3 className="text-xl font-bold mb-4 text-foreground">
+                  Información de Contacto
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Nombre completo
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Tu nombre"
+                      value={customerInfo.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Teléfono *
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="Tu teléfono"
+                      value={customerInfo.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Dirección de entrega *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Dirección completa para la entrega"
+                    value={customerInfo.address}
+                    onChange={(e) =>
+                      handleInputChange("address", e.target.value)
+                    }
+                    className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Notas adicionales
+                  </label>
+                  <textarea
+                    placeholder="Instrucciones especiales para la entrega, etc."
+                    value={customerInfo.notes}
+                    onChange={(e) => handleInputChange("notes", e.target.value)}
+                    className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 h-20 resize-none"
+                  />
                 </div>
               </div>
 
               {/* Resumen del pedido */}
-              <div className="mt-8 p-6 bg-muted rounded-lg">
+              <div className="mt-6 p-6 bg-muted rounded-lg">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-foreground">Subtotal:</span>
-                  <span className="font-semibold">$0.00</span>
+                  <span className="font-semibold">
+                    ${getTotalPrice().toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-foreground">Envío:</span>
@@ -138,14 +366,21 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between items-center mb-6 text-lg font-bold">
                   <span className="text-foreground">Total:</span>
-                  <span className="text-red-600">$0.00</span>
+                  <span className="text-red-600">
+                    ${getTotalPrice().toFixed(2)}
+                  </span>
                 </div>
 
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  disabled={
+                    !customerInfo.phone ||
+                    !customerInfo.address ||
+                    cartItems.length === 0
+                  }
+                  className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Proceder al Pago
+                  Realizar Pedido
                 </button>
               </div>
             </div>

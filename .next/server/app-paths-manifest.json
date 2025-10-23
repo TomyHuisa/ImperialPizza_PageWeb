@@ -1,5 +1,7 @@
 {
+  "/login/page": "app/login/page.js",
   "/historial-pedidos/page": "app/historial-pedidos/page.js",
-  "/register/page": "app/register/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/perfil/page": "app/perfil/page.js",
+  "/carrito/page": "app/carrito/page.js"
 }

@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
 import { AuthProvider } from "@/contexts";
+import { CartProvider } from "@/contexts/CartContext"; // Agregar esta importación
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,11 +23,16 @@ export default function RootLayout({
     <html lang="es">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <AuthProvider>
-          <Suspense fallback={null}>
-            {children}
-            <Toaster />
-          </Suspense>
-          <Analytics />
+          <CartProvider>
+            {" "}
+            {/* Agregar CartProvider aquí */}
+            <Suspense fallback={null}>
+              {children}
+              <Toaster />
+            </Suspense>
+            <Analytics />
+          </CartProvider>{" "}
+          {/* Cerrar CartProvider */}
         </AuthProvider>
       </body>
     </html>

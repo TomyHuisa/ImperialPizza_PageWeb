@@ -13,38 +13,39 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
 interface Pizza {
-  id: number;
+  id: string;
   name: string;
   description: string;
   image: string;
-  available: boolean;
+  stock: number;
   price: number;
+  category: string;
 }
 
 interface PizzaCardProps {
   pizza: Pizza;
+  onAddToCart: (pizza: Pizza) => void; // Nueva prop
 }
 
-export function PizzaCard({ pizza }: PizzaCardProps) {
+export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
   const { toast } = useToast();
 
   const handleAddToCart = () => {
-    if (!pizza.available) {
+    if (pizza.stock <= 0) {
       toast({
         variant: "destructive",
-        title: "⚠️ Producto no disponible actualmente",
+        title: "⚠️ Producto agotado",
         description:
           "Lo sentimos, esta pizza no está disponible en este momento.",
       });
       return;
     }
 
-    toast({
-      title: "✅ Agregado al carrito",
-      description: `${pizza.name} ha sido agregada a tu pedido.`,
-      duration: 550,
-    });
+    // Llamar a la función del padre para abrir el modal
+    onAddToCart(pizza);
   };
+
+  const isAvailable = pizza.stock > 0;
 
   return (
     <Card className="overflow-hidden flex flex-col h-full transition-all hover:shadow-lg">
@@ -55,8 +56,17 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
           fill
           className="object-cover transition-transform hover:scale-105"
         />
-        {!pizza.available && (
-          <div className="absolute inset-0 bg-foreground/60 flex items-center justify-center"></div>
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-foreground/60 flex items-center justify-center">
+            <span className="text-white font-bold text-lg bg-red-600 px-4 py-2 rounded">
+              AGOTADO
+            </span>
+          </div>
+        )}
+        {isAvailable && pizza.stock < 5 && (
+          <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-1 rounded text-sm font-bold">
+            ¡Últimas {pizza.stock}!
+          </div>
         )}
       </div>
 
@@ -70,19 +80,26 @@ export function PizzaCard({ pizza }: PizzaCardProps) {
       </CardHeader>
 
       <CardContent className="flex-grow">
-        <p className="text-3xl font-bold text-accent">
-          ${pizza.price.toFixed(2)}
-        </p>
+        <div className="flex justify-between items-center">
+          <p className="text-3xl font-bold text-accent">
+            ${pizza.price.toFixed(2)}
+          </p>
+          {isAvailable && (
+            <p className="text-sm text-muted-foreground">
+              Stock: {pizza.stock}
+            </p>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter>
         <Button
           onClick={handleAddToCart}
-          disabled={!pizza.available}
+          disabled={!isAvailable}
           className="w-full text-lg py-6"
-          variant={pizza.available ? "default" : "secondary"}
+          variant={isAvailable ? "default" : "secondary"}
         >
-          {pizza.available ? "Agregar al Carrito" : "No Disponible"}
+          {isAvailable ? "Agregar al Carrito" : "Agotado"}
         </Button>
       </CardFooter>
     </Card>
