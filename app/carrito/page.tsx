@@ -17,6 +17,7 @@ export default function CartPage() {
     getTotalPrice,
     getTotalItems,
     validateCartStock,
+    createOrder, // AÑADIR createOrder aquí
   } = useCart();
 
   const [customerInfo, setCustomerInfo] = useState({
@@ -71,27 +72,36 @@ export default function CartPage() {
       return;
     }
 
-    // En una implementación real, aquí iría la lógica de checkout con PocketBase
-    console.log("Realizando pedido:", {
-      items: cartItems,
-      customerInfo,
-      total: getTotalPrice(),
-    });
+    // REEMPLAZAR EL CONSOLE.LOG CON LA LLAMADA A POCKETBASE
+    try {
+      const orderId = await createOrder(customerInfo);
 
-    toast({
-      title: "✅ Pedido realizado",
-      description:
-        "Tu pedido ha sido creado exitosamente. Te contactaremos pronto.",
-      duration: 3000,
-    });
+      if (orderId) {
+        toast({
+          title: "✅ Pedido realizado",
+          description: `Tu pedido #${orderId} ha sido creado exitosamente. Te contactaremos pronto.`,
+          duration: 3000,
+        });
 
-    // Limpiar carrito después del pedido
-    clearCart();
+        // Limpiar carrito después del pedido
+        clearCart();
 
-    // Redirigir a home después de un momento
-    setTimeout(() => {
-      router.push("/");
-    }, 2000);
+        // Redirigir a home después de un momento
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
+      } else {
+        throw new Error("No se pudo crear el pedido");
+      }
+    } catch (error) {
+      console.error("Error en checkout:", error);
+      toast({
+        variant: "destructive",
+        title: "❌ Error",
+        description:
+          "No se pudo crear el pedido. Por favor, intenta nuevamente.",
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
