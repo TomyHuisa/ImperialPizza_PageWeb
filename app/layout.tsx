@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { AuthProvider } from "@/contexts";
 import { CartProvider } from "@/contexts/CartContext"; // Agregar esta importación
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 
 export const metadata: Metadata = {
   title: "Pizzeria Imperial",

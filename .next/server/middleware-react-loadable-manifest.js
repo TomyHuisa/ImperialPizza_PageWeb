@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"app/historial-pedidos/page.tsx -> @/components/OrderTrackingMap\":{\"id\":\"app/historial-pedidos/page.tsx -> @/components/OrderTrackingMap\",\"files\":[\"static/chunks/_app-pages-browser_components_OrderTrackingMap_tsx.js\"]},\"components/OrderTrackingMap.tsx -> leaflet\":{\"id\":\"components/OrderTrackingMap.tsx -> leaflet\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_leaflet_dist_leaflet-src_js.js\"]}}"

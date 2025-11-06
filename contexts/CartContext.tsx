@@ -28,6 +28,7 @@ interface CartContextType {
     phone: string;
     address: string;
     notes: string;
+    payment_method: string;
   }) => Promise<string | null>;
 }
 
@@ -35,24 +36,36 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
-  // Cargar carrito desde localStorage al iniciar
+  // Cargar carrito desde localStorage SOLO en el cliente
   useEffect(() => {
+    setIsMounted(true);
     const savedCart = localStorage.getItem("pizzeria_cart");
     if (savedCart) {
       try {
-        setCartItems(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+        console.log("Carrito cargado desde localStorage:", parsedCart);
+        setCartItems(Array.isArray(parsedCart) ? parsedCart : []);
       } catch (error) {
         console.error("Error loading cart from localStorage:", error);
+        setCartItems([]);
       }
     }
   }, []);
 
-  // Guardar carrito en localStorage cuando cambie
+  // Guardar carrito en localStorage cuando cambie (SOLO en cliente)
   useEffect(() => {
-    localStorage.setItem("pizzeria_cart", JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (isMounted) {
+      try {
+        localStorage.setItem("pizzeria_cart", JSON.stringify(cartItems));
+        console.log("Carrito guardado en localStorage:", cartItems);
+      } catch (error) {
+        console.error("Error saving cart to localStorage:", error);
+      }
+    }
+  }, [cartItems, isMounted]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setCartItems((prev) => {
@@ -60,16 +73,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         (i) => i.pizzaId === item.pizzaId && i.comment === item.comment
       );
 
+      let newCart;
       if (existingItem) {
-        return prev.map((i) =>
+        newCart = prev.map((i) =>
           i.pizzaId === item.pizzaId && i.comment === item.comment
             ? { ...i, quantity: i.quantity + 1 }
             : i
         );
       } else {
-        const newItem = { ...item, quantity: 1 };
-        return [...prev, newItem];
+        newCart = [...prev, { ...item, quantity: 1 }];
       }
+
+      console.log("Nuevo carrito después de agregar:", newCart);
+      return newCart;
     });
 
     toast({
@@ -80,11 +96,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (pizzaId: string, comment: string) => {
-    setCartItems((prev) =>
-      prev.filter(
+    setCartItems((prev) => {
+      const newCart = prev.filter(
         (item) => !(item.pizzaId === pizzaId && item.comment === comment)
-      )
-    );
+      );
+      console.log("Carrito después de eliminar:", newCart);
+      return newCart;
+    });
 
     toast({
       title: "🗑️ Eliminado",
@@ -103,17 +121,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setCartItems((prev) =>
-      prev.map((item) =>
+    setCartItems((prev) => {
+      const newCart = prev.map((item) =>
         item.pizzaId === pizzaId && item.comment === comment
           ? { ...item, quantity }
           : item
-      )
-    );
+      );
+      console.log("Carrito después de actualizar cantidad:", newCart);
+      return newCart;
+    });
   };
 
   const clearCart = () => {
     setCartItems([]);
+    console.log("Carrito limpiado");
   };
 
   const getTotalPrice = () => {
@@ -206,18 +227,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // NUEVA FUNCIÓN: Crear pedido en PocketBase
+  // 🔥 ACTUALIZADO: Función para crear pedido - AHORA CALCULA PUNTOS
   const createOrder = async (customerInfo: {
     name: string;
     phone: string;
     address: string;
     notes: string;
+    payment_method: string;
   }): Promise<string | null> => {
     try {
       // Validar que haya items en el carrito
       if (cartItems.length === 0) {
         throw new Error("El carrito está vacío");
       }
+
+      // 🔥 CALCULAR PUNTOS GANADOS (50 puntos por pizza)
+      const pointsEarned = cartItems.reduce((total, item) => {
+        return total + item.quantity * 50;
+      }, 0);
 
       const orderData = {
         items: cartItems,
@@ -227,11 +254,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         delivery_address: customerInfo.address,
         phone: customerInfo.phone,
         customer_name: customerInfo.name,
-        user: null, // Si no hay autenticación, lo dejamos null
+        payment_method: customerInfo.payment_method,
+        user: null,
+        points_earned: pointsEarned, // 🔥 INCLUIR PUNTOS EN EL PEDIDO
       };
 
       console.log("Enviando pedido a PocketBase:", orderData);
 
+      // 1. Crear la orden en PocketBase
       const response = await fetch(
         "http://127.0.0.1:8090/api/collections/orders/records",
         {
@@ -251,12 +281,109 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       const result = await response.json();
       console.log("Pedido creado exitosamente:", result);
+
+      // 2. ACTUALIZAR STOCK DE LAS PIZZAS
+      await updatePizzaStock(cartItems);
+
+      // 3. Limpiar carrito después de crear el pedido exitosamente
+      clearCart();
+
+      // 🔥 MOSTRAR PUNTOS GANADOS AL USUARIO
+      toast({
+        title: "✅ Pedido creado exitosamente",
+        description: `¡Has ganado ${pointsEarned} puntos! Revisa tu historial para ver tus puntos acumulados.`,
+        duration: 5000,
+      });
+
       return result.id;
     } catch (error) {
       console.error("Error creando pedido:", error);
+
+      toast({
+        variant: "destructive",
+        title: "❌ Error creando pedido",
+        description: "No se pudo procesar el pedido. Intenta nuevamente.",
+        duration: 5000,
+      });
+
       return null;
     }
   };
+
+  // Función para actualizar stock de pizzas después del pedido
+  const updatePizzaStock = async (items: CartItem[]) => {
+    try {
+      console.log("🔄 Actualizando stock de pizzas...");
+
+      for (const item of items) {
+        try {
+          // Obtener la pizza actual para conocer el stock actual
+          const pizzaResponse = await fetch(
+            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`
+          );
+
+          if (!pizzaResponse.ok) {
+            console.error(
+              `Error obteniendo pizza ${item.pizzaId}: ${pizzaResponse.status}`
+            );
+            continue;
+          }
+
+          const pizzaData = await pizzaResponse.json();
+          const currentStock = pizzaData.stock || 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          console.log(
+            `Actualizando stock de ${item.name}: ${currentStock} -> ${newStock}`
+          );
+
+          // Actualizar el stock de la pizza
+          const updateResponse = await fetch(
+            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                stock: newStock,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error(
+              `Error actualizando stock de ${item.name}: ${updateResponse.status}`
+            );
+          } else {
+            console.log(`✅ Stock de ${item.name} actualizado exitosamente`);
+          }
+        } catch (error) {
+          console.error(`Error procesando pizza ${item.pizzaId}:`, error);
+        }
+      }
+
+      toast({
+        title: "✅ Stock actualizado",
+        description:
+          "El stock de las pizzas ha sido actualizado correctamente.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Error general actualizando stock:", error);
+      toast({
+        variant: "destructive",
+        title: "⚠️ Error actualizando stock",
+        description:
+          "El pedido se creó pero hubo un error actualizando el stock. Contacta al administrador.",
+      });
+    }
+  };
+
+  // Evitar renderizado hasta que esté montado
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <CartContext.Provider
@@ -269,7 +396,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         getTotalPrice,
         getTotalItems,
         validateCartStock,
-        createOrder, // NO OLVIDAR INCLUIRLA AQUÍ
+        createOrder,
       }}
     >
       {children}

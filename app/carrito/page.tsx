@@ -17,7 +17,7 @@ export default function CartPage() {
     getTotalPrice,
     getTotalItems,
     validateCartStock,
-    createOrder, // AÑADIR createOrder aquí
+    createOrder,
   } = useCart();
 
   const [customerInfo, setCustomerInfo] = useState({
@@ -26,6 +26,18 @@ export default function CartPage() {
     address: "",
     notes: "",
   });
+
+  const [paymentMethod, setPaymentMethod] = useState<
+    "efectivo" | "tarjeta" | ""
+  >("");
+  const [cardInfo, setCardInfo] = useState({
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
+  });
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
 
   // Validar stock al cargar la página
@@ -48,6 +60,26 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
 
+    // Validar método de pago
+    if (!paymentMethod) {
+      toast({
+        variant: "destructive",
+        title: "❌ Método de pago requerido",
+        description: "Por favor selecciona un método de pago.",
+      });
+      return;
+    }
+
+    // Validar información de tarjeta si es pago con tarjeta
+    if (paymentMethod === "tarjeta" && !isCardInfoComplete()) {
+      toast({
+        variant: "destructive",
+        title: "❌ Información de tarjeta incompleta",
+        description: "Por favor ingresa todos los datos de tu tarjeta.",
+      });
+      return;
+    }
+
     // Validar stock una última vez antes del checkout
     setIsValidating(true);
     const isValid = await validateCartStock();
@@ -62,25 +94,35 @@ export default function CartPage() {
       return;
     }
 
-    // Validar información mínima
-    if (!customerInfo.phone || !customerInfo.address) {
+    // Validar información mínima del cliente
+    if (!customerInfo.phone || !customerInfo.address || !customerInfo.name) {
       toast({
         variant: "destructive",
         title: "❌ Información incompleta",
-        description: "Por favor ingresa tu teléfono y dirección de entrega.",
+        description: "Por favor completa todos los campos obligatorios.",
       });
       return;
     }
 
-    // REEMPLAZAR EL CONSOLE.LOG CON LA LLAMADA A POCKETBASE
+    setIsSubmitting(true);
+
     try {
-      const orderId = await createOrder(customerInfo);
+      const orderData = {
+        ...customerInfo,
+        payment_method: paymentMethod,
+      };
+
+      const orderId = await createOrder(orderData);
 
       if (orderId) {
         toast({
           title: "✅ Pedido realizado",
-          description: `Tu pedido #${orderId} ha sido creado exitosamente. Te contactaremos pronto.`,
-          duration: 3000,
+          description: `Tu pedido #${orderId} ha sido creado exitosamente. ${
+            paymentMethod === "efectivo"
+              ? "Prepara el pago en efectivo."
+              : "Pago con tarjeta procesado."
+          }`,
+          duration: 4000,
         });
 
         // Limpiar carrito después del pedido
@@ -89,7 +131,7 @@ export default function CartPage() {
         // Redirigir a home después de un momento
         setTimeout(() => {
           router.push("/");
-        }, 2000);
+        }, 3000);
       } else {
         throw new Error("No se pudo crear el pedido");
       }
@@ -101,11 +143,20 @@ export default function CartPage() {
         description:
           "No se pudo crear el pedido. Por favor, intenta nuevamente.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setCustomerInfo((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleCardInputChange = (field: string, value: string) => {
+    setCardInfo((prev) => ({
       ...prev,
       [field]: value,
     }));
@@ -117,6 +168,50 @@ export default function CartPage() {
     newQuantity: number
   ) => {
     await updateQuantity(pizzaId, comment, newQuantity);
+  };
+
+  const handlePaymentMethodSelect = (method: "efectivo" | "tarjeta") => {
+    setPaymentMethod(method);
+    if (method === "tarjeta") {
+      setShowCardForm(true);
+    } else {
+      setShowCardForm(false);
+    }
+  };
+
+  const handleAddCard = () => {
+    setShowCardForm(true);
+    setPaymentMethod("tarjeta");
+    toast({
+      title: "💳 Agregar tarjeta",
+      description: "Por favor ingresa los datos de tu tarjeta de crédito.",
+      duration: 3000,
+    });
+  };
+
+  const isCardInfoComplete = () => {
+    return cardInfo.number && cardInfo.name && cardInfo.expiry && cardInfo.cvv;
+  };
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || "";
+    const parts = [];
+
+    for (let i = 0; i < match.length; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    return parts.length ? parts.join(" ") : value;
+  };
+
+  const formatExpiry = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    if (v.length >= 2) {
+      return v.substring(0, 2) + (v.length > 2 ? "/" + v.substring(2, 4) : "");
+    }
+    return v;
   };
 
   if (isValidating) {
@@ -304,7 +399,7 @@ export default function CartPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      Nombre completo
+                      Nombre completo *
                     </label>
                     <input
                       type="text"
@@ -314,6 +409,7 @@ export default function CartPage() {
                         handleInputChange("name", e.target.value)
                       }
                       className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
                     />
                   </div>
                   <div>
@@ -362,6 +458,216 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {/* Método de Pago */}
+              <div className="mt-8 p-6 bg-muted rounded-lg">
+                <h3 className="text-xl font-bold mb-4 text-foreground">
+                  Método de Pago
+                </h3>
+
+                {/* Recuadro transparente para agregar tarjeta */}
+                {!showCardForm && (
+                  <div
+                    onClick={handleAddCard}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-colors mb-6"
+                  >
+                    <svg
+                      className="w-12 h-12 text-gray-400 mx-auto mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                    <p className="text-lg font-semibold text-gray-600 mb-2">
+                      Agregar Tarjeta
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Haz clic aquí para agregar tu tarjeta de crédito/débito
+                    </p>
+                  </div>
+                )}
+
+                {/* Formulario de tarjeta */}
+                {showCardForm && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h4 className="text-lg font-semibold mb-4">
+                      Información de la Tarjeta
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Número de tarjeta *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="1234 5678 9012 3456"
+                          value={cardInfo.number}
+                          onChange={(e) =>
+                            handleCardInputChange(
+                              "number",
+                              formatCardNumber(e.target.value)
+                            )
+                          }
+                          maxLength={19}
+                          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Nombre en la tarjeta *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="JUAN PEREZ"
+                          value={cardInfo.name}
+                          onChange={(e) =>
+                            handleCardInputChange(
+                              "name",
+                              e.target.value.toUpperCase()
+                            )
+                          }
+                          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Fecha de expiración *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="MM/AA"
+                          value={cardInfo.expiry}
+                          onChange={(e) =>
+                            handleCardInputChange(
+                              "expiry",
+                              formatExpiry(e.target.value)
+                            )
+                          }
+                          maxLength={5}
+                          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          CVV *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="123"
+                          value={cardInfo.cvv}
+                          onChange={(e) =>
+                            handleCardInputChange(
+                              "cvv",
+                              e.target.value.replace(/[^0-9]/g, "")
+                            )
+                          }
+                          maxLength={4}
+                          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botones de método de pago */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handlePaymentMethodSelect("efectivo")}
+                    className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                      paymentMethod === "efectivo"
+                        ? "border-red-600 bg-red-50 text-red-700"
+                        : "border-gray-300 bg-white hover:border-red-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                        />
+                      </svg>
+                      <span className="font-semibold">Pagar Efectivo</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Paga cuando recibas tu pedido
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!showCardForm) {
+                        toast({
+                          variant: "destructive",
+                          title: "💳 Tarjeta requerida",
+                          description:
+                            "Por favor ingresa los datos de tu tarjeta primero.",
+                        });
+                        return;
+                      }
+                      handlePaymentMethodSelect("tarjeta");
+                    }}
+                    disabled={!showCardForm || !isCardInfoComplete()}
+                    className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                      paymentMethod === "tarjeta"
+                        ? "border-green-600 bg-green-50 text-green-700"
+                        : showCardForm && isCardInfoComplete()
+                        ? "border-gray-300 bg-white hover:border-green-500"
+                        : "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
+                      <span className="font-semibold">Pagar con Tarjeta</span>
+                    </div>
+                    <p className="text-sm mt-2">
+                      {showCardForm && isCardInfoComplete()
+                        ? "Tarjeta lista para pagar"
+                        : "Ingrese su tarjeta de crédito por favor"}
+                    </p>
+                  </button>
+                </div>
+
+                {/* Método seleccionado */}
+                {paymentMethod && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-700 text-sm">
+                      <strong>Método seleccionado:</strong>{" "}
+                      {paymentMethod === "efectivo"
+                        ? "Pago en efectivo"
+                        : "Pago con tarjeta"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Resumen del pedido */}
               <div className="mt-6 p-6 bg-muted rounded-lg">
                 <div className="flex justify-between items-center mb-4">
@@ -386,11 +692,15 @@ export default function CartPage() {
                   disabled={
                     !customerInfo.phone ||
                     !customerInfo.address ||
-                    cartItems.length === 0
+                    !customerInfo.name ||
+                    !paymentMethod ||
+                    cartItems.length === 0 ||
+                    isSubmitting ||
+                    (paymentMethod === "tarjeta" && !isCardInfoComplete())
                   }
                   className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Realizar Pedido
+                  {isSubmitting ? "Procesando..." : "Realizar Pedido"}
                 </button>
               </div>
             </div>

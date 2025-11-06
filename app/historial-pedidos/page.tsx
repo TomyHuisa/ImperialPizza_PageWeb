@@ -38,12 +38,14 @@ interface Order {
   created: string;
   updated: string;
   customer_name: string;
-  customer_phone: string;
+  phone: string;
   delivery_address: string;
   customer_notes: string;
+  payment_method: string;
   items: OrderItem[];
   total: number;
   status: string;
+  points_earned?: number; // 🔥 NUEVO CAMPO OPCIONAL
 }
 
 export default function OrderHistoryPage() {
@@ -59,7 +61,7 @@ export default function OrderHistoryPage() {
       try {
         setIsLoading(true);
         const response = await fetch(
-          "http://127.0.0.1:8090/api/collections/orders/records?sort=-created"
+          "http://127.0.0.1:8090/api/collections/orders/records?sort=-created&expand=user"
         );
 
         if (!response.ok) {
@@ -67,6 +69,7 @@ export default function OrderHistoryPage() {
         }
 
         const data = await response.json();
+        console.log("Pedidos cargados:", data.items);
         setOrders(data.items || []);
       } catch (error) {
         console.error("Error fetching orders:", error);
@@ -87,19 +90,24 @@ export default function OrderHistoryPage() {
   const filteredOrders = phoneFilter
     ? orders.filter(
         (order) =>
-          order.customer_phone.includes(phoneFilter) ||
+          order.phone.includes(phoneFilter) ||
           order.customer_name.toLowerCase().includes(phoneFilter.toLowerCase())
       )
     : orders;
 
-  // Calcular puntos totales
-  const totalPoints = filteredOrders.reduce((total, order) => {
-    const orderPoints = order.items.reduce(
-      (itemTotal, item) => itemTotal + item.quantity * 50,
-      0
-    );
-    return total + orderPoints;
-  }, 0);
+  // 🔥 ACTUALIZADO: Calcular puntos totales - SOLO PEDIDOS NO CANCELADOS
+  const totalPoints = filteredOrders
+    .filter((order) => order.status !== "cancelled")
+    .reduce((total, order) => {
+      const orderPoints =
+        order.points_earned !== undefined
+          ? order.points_earned
+          : order.items.reduce(
+              (itemTotal, item) => itemTotal + item.quantity * 50,
+              0
+            );
+      return total + orderPoints;
+    }, 0);
 
   // Función para formatear fecha
   const formatDate = (dateString: string) => {
@@ -113,13 +121,18 @@ export default function OrderHistoryPage() {
     });
   };
 
-  // Función para cancelar pedido
+  // 🔥 ACTUALIZADO: Función para cancelar pedido - REVERTIR STOCK Y PUNTOS
   const cancelOrder = async (orderId: string) => {
     if (!confirm("¿Estás seguro de que quieres cancelar este pedido?")) {
       return;
     }
 
     try {
+      const orderToCancel = orders.find((order) => order.id === orderId);
+      if (!orderToCancel) {
+        throw new Error("Pedido no encontrado");
+      }
+
       const response = await fetch(
         `http://127.0.0.1:8090/api/collections/orders/records/${orderId}`,
         {
@@ -129,24 +142,42 @@ export default function OrderHistoryPage() {
           },
           body: JSON.stringify({
             status: "cancelled",
+            updated: new Date().toISOString(),
+            points_earned: 0, // 🔥 PONER PUNTOS EN 0 AL CANCELAR
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Error al cancelar el pedido");
+        const errorData = await response.json();
+        console.error("Error response from PocketBase:", errorData);
+        throw new Error(`Error al cancelar el pedido: ${response.status}`);
       }
+
+      const updatedOrder = await response.json();
+      console.log("Pedido cancelado exitosamente:", updatedOrder);
+
+      // Revertir el stock de las pizzas
+      await restorePizzaStock(orderToCancel.items);
 
       // Actualizar la lista local
       setOrders((prev) =>
         prev.map((order) =>
-          order.id === orderId ? { ...order, status: "cancelled" } : order
+          order.id === orderId
+            ? {
+                ...order,
+                status: "cancelled",
+                updated: updatedOrder.updated,
+                points_earned: 0, // 🔥 ACTUALIZAR PUNTOS A 0 LOCALMENTE
+              }
+            : order
         )
       );
 
       toast({
         title: "✅ Pedido cancelado",
-        description: "El pedido ha sido cancelado exitosamente.",
+        description:
+          "El pedido ha sido cancelado exitosamente. Stock y puntos restaurados.",
         duration: 3000,
       });
     } catch (error) {
@@ -154,7 +185,75 @@ export default function OrderHistoryPage() {
       toast({
         variant: "destructive",
         title: "❌ Error",
-        description: "No se pudo cancelar el pedido.",
+        description:
+          "No se pudo cancelar el pedido. Verifica la consola para más detalles.",
+      });
+    }
+  };
+
+  // Función para restaurar stock de pizzas al cancelar pedido
+  const restorePizzaStock = async (items: OrderItem[]) => {
+    try {
+      console.log("🔄 Restaurando stock de pizzas...");
+
+      for (const item of items) {
+        try {
+          const pizzaResponse = await fetch(
+            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`
+          );
+
+          if (!pizzaResponse.ok) {
+            console.error(
+              `Error obteniendo pizza ${item.pizzaId}: ${pizzaResponse.status}`
+            );
+            continue;
+          }
+
+          const pizzaData = await pizzaResponse.json();
+          const currentStock = pizzaData.stock || 0;
+          const newStock = currentStock + item.quantity;
+
+          console.log(
+            `Restaurando stock de ${item.name}: ${currentStock} -> ${newStock}`
+          );
+
+          const updateResponse = await fetch(
+            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                stock: newStock,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error(
+              `Error actualizando stock de ${item.name}: ${updateResponse.status}`
+            );
+          } else {
+            console.log(`✅ Stock de ${item.name} restaurado exitosamente`);
+          }
+        } catch (error) {
+          console.error(`Error procesando pizza ${item.pizzaId}:`, error);
+        }
+      }
+
+      toast({
+        title: "✅ Stock restaurado",
+        description: "El stock de las pizzas ha sido restaurado correctamente.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Error general restaurando stock:", error);
+      toast({
+        variant: "destructive",
+        title: "⚠️ Error restaurando stock",
+        description:
+          "El pedido se canceló pero hubo un error restaurando el stock. Contacta al administrador.",
       });
     }
   };
@@ -257,7 +356,7 @@ export default function OrderHistoryPage() {
             <h1 className="text-3xl font-bold text-foreground font-serif text-center flex-1">
               Pizzeria Imperial
             </h1>
-            <div className="w-10"></div> {/* Espacio para centrar */}
+            <div className="w-10"></div>
           </div>
         </div>
       </header>
@@ -322,10 +421,16 @@ export default function OrderHistoryPage() {
 
           <div className="divide-y divide-border">
             {filteredOrders.map((order) => {
-              const orderPoints = order.items.reduce(
-                (total, item) => total + item.quantity * 50,
-                0
-              );
+              // 🔥 ACTUALIZADO: Calcular puntos del pedido individual
+              const orderPoints =
+                order.status === "cancelled"
+                  ? 0
+                  : order.points_earned !== undefined
+                  ? order.points_earned
+                  : order.items.reduce(
+                      (total, item) => total + item.quantity * 50,
+                      0
+                    );
               const totalItems = order.items.reduce(
                 (total, item) => total + item.quantity,
                 0
@@ -350,13 +455,18 @@ export default function OrderHistoryPage() {
                         >
                           {getStatusText(order.status)}
                         </span>
+                        {order.payment_method && (
+                          <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded-full border border-gray-200">
+                            Pago: {order.payment_method}
+                          </span>
+                        )}
                       </div>
 
                       {/* Información del cliente */}
                       <div className="mb-3">
                         <p className="text-sm text-muted-foreground">
                           <strong>Cliente:</strong> {order.customer_name} |{" "}
-                          {order.customer_phone}
+                          {order.phone}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           <strong>Dirección:</strong> {order.delivery_address}
@@ -408,7 +518,6 @@ export default function OrderHistoryPage() {
 
                       {/* Botones de acción */}
                       <div className="flex flex-col gap-2">
-                        {/* Botón Cancelar Pedido - Solo para pending, confirmed, preparing */}
                         {canCancelOrder(order.status) && (
                           <button
                             onClick={() => cancelOrder(order.id)}
@@ -418,7 +527,6 @@ export default function OrderHistoryPage() {
                           </button>
                         )}
 
-                        {/* Botón Rastrear Pedido - Solo para onway */}
                         {order.status === "onway" && (
                           <button
                             onClick={() => setTrackingOrderId(order.id)}
@@ -428,7 +536,6 @@ export default function OrderHistoryPage() {
                           </button>
                         )}
 
-                        {/* Botón Volver a Pedir - Solo para withdrawal, delivered, cancelled */}
                         {canReorder(order.status) ? (
                           <Link
                             href="/"
@@ -452,7 +559,6 @@ export default function OrderHistoryPage() {
             })}
           </div>
 
-          {/* Mensaje si no hay pedidos */}
           {filteredOrders.length === 0 && (
             <div className="p-12 text-center">
               <svg
