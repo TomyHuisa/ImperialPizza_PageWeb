@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext"; // Ajusta la ruta según tu estructura
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, updateProfile, logout } = useAuth();
+  // Agregamos refreshUser al destructuring
+  const { user, updateProfile, logout, refreshUser } = useAuth();
+
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +19,14 @@ export default function ProfilePage() {
     location: "",
   });
 
-  // Cargar datos del usuario cuando el componente se monta
+  // EFECTO NUEVO: Refrescar datos al entrar al perfil
+  useEffect(() => {
+    if (refreshUser) {
+      refreshUser();
+    }
+  }, []); // Se ejecuta solo al montar el componente
+
+  // Cargar datos del usuario cuando el objeto 'user' cambia
   useEffect(() => {
     if (user) {
       setFormData({
@@ -47,10 +56,13 @@ export default function ProfilePage() {
         location: formData.location,
       });
 
+      // También refrescamos aquí para asegurar sincronización
+      if (refreshUser) await refreshUser();
+
       setShowSuccessMessage(true);
       setTimeout(() => {
         setShowSuccessMessage(false);
-        router.push("/");
+        // Opcional: router.push("/"); si quieres redirigir
       }, 1500);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -60,8 +72,6 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = () => {
-    // Aquí deberías implementar la lógica para eliminar la cuenta
-    // Por ahora, solo cerramos sesión
     logout();
     setShowDeleteConfirm(false);
     router.push("/");
@@ -87,7 +97,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background animate-in fade-in">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
@@ -124,20 +134,41 @@ export default function ProfilePage() {
           Perfil de Usuario
         </h2>
 
-        {/* Puntos del usuario */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <span className="text-yellow-800 font-medium">Tus puntos:</span>
-            <span className="text-2xl font-bold text-yellow-600">
-              {user.points || 0} pts
+        {/* Puntos del usuario - SECCIÓN DESTACADA */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6 mb-8 shadow-sm flex items-center justify-between">
+          <div>
+            <h3 className="text-yellow-800 font-bold text-lg">Imperial Club</h3>
+            <p className="text-yellow-600 text-sm">
+              Tus puntos disponibles para canje
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="block text-4xl font-bold text-yellow-600">
+              {user.points || 0}
+            </span>
+            <span className="text-xs font-bold text-yellow-700 uppercase tracking-wide">
+              Puntos
             </span>
           </div>
         </div>
 
         <form onSubmit={handleSaveChanges} className="space-y-6">
           {/* Información del usuario */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
               Información Personal
             </h3>
 
@@ -146,31 +177,14 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Nombre de Usuario
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  name="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-background"
-                  placeholder="Nombre de usuario"
-                />
-              </div>
+              <input
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background transition-all"
+                placeholder="Nombre de usuario"
+              />
             </div>
 
             {/* Teléfono */}
@@ -178,31 +192,14 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Teléfono
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-background"
-                  placeholder="Número de teléfono"
-                />
-              </div>
+              <input
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background transition-all"
+                placeholder="Número de teléfono"
+              />
             </div>
 
             {/* Email (solo lectura) */}
@@ -210,82 +207,57 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Email
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={user.email}
-                  readOnly
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-muted text-muted-foreground"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                El email no se puede modificar
-              </p>
+              <input
+                type="text"
+                value={user.email}
+                readOnly
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
             </div>
           </div>
 
           {/* Ubicación */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Ubicación
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Dirección de Envío
             </h3>
-            <p className="text-muted-foreground mb-4">
-              ¿Desea agregar su ubicación para entregas?
-            </p>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </div>
               <input
                 name="location"
                 type="text"
                 value={formData.location}
                 onChange={handleChange}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                placeholder="Ingresa tu dirección completa"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                placeholder="Ej: Av. Corrientes 1234, Piso 2"
               />
             </div>
           </div>
 
           {/* Botones */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
+              className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all disabled:opacity-50 shadow-lg shadow-red-200"
             >
               {isLoading ? "Guardando..." : "Guardar Cambios"}
             </button>
@@ -293,9 +265,9 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              className="flex-1 bg-white text-gray-700 border border-gray-300 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
-              Eliminar Cuenta
+              Cerrar Sesión
             </button>
           </div>
         </form>
@@ -303,11 +275,11 @@ export default function ProfilePage() {
 
       {/* Mensaje de éxito */}
       {showSuccessMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-8 h-8 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -320,14 +292,11 @@ export default function ProfilePage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              ¡Éxito!
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              ¡Perfil Actualizado!
             </h3>
-            <p className="text-gray-600 mb-4">
-              Los cambios fueron realizados con satisfacción
-            </p>
-            <p className="text-sm text-gray-500">
-              Redirigiendo a la página principal...
+            <p className="text-gray-600">
+              Tus datos se han guardado correctamente.
             </p>
           </div>
         </div>
@@ -335,27 +304,26 @@ export default function ProfilePage() {
 
       {/* Confirmación de eliminación */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              ¿Eliminar cuenta?
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              ¿Cerrar sesión?
             </h3>
-            <p className="text-gray-600 mb-4">
-              Esta acción no se puede deshacer. Todos tus datos se perderán
-              permanentemente.
+            <p className="text-gray-600 mb-6">
+              Estás a punto de salir de tu cuenta.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteAccount}
-                className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-200"
               >
-                Eliminar
+                Confirmar
               </button>
             </div>
           </div>

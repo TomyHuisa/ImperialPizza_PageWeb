@@ -39,10 +39,13 @@ export function PizzaMenu() {
   const [selectedCategory, setSelectedCategory] = useState("clasicas");
   const [loading, setLoading] = useState(true);
 
+  // 🔥 El useEffect ahora solo depende de selectedCategory
   useEffect(() => {
+    // 🔥 Antes: Se usaba AbortController aquí
     loadPizzas(selectedCategory);
   }, [selectedCategory]);
 
+  // 🔥 El 'signal' fue removido de los argumentos
   const loadPizzas = async (category: string) => {
     setLoading(true);
     try {
@@ -59,6 +62,7 @@ export function PizzaMenu() {
         .getFullList<PocketBasePizzaRecord>({
           filter,
           sort: "-popular,name",
+          // 🔥 Antes: fetch: { signal }, // Esta era la línea problemática
         });
 
       // Mapear los datos de PocketBase a tu interfaz
@@ -79,7 +83,8 @@ export function PizzaMenu() {
 
       setPizzas(pizzasData);
       console.log("Pizzas cargadas:", pizzasData);
-    } catch (error) {
+    } catch (error: any) {
+      // Ahora solo manejamos errores de conexión/PocketBase
       console.error("Error loading pizzas:", error);
     } finally {
       setLoading(false);
@@ -98,7 +103,11 @@ export function PizzaMenu() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold text-center mb-8">Nuestras Pizzas</h1>
 
-      <PizzaSelector onCategoryChange={handleCategoryChange} />
+      {/* COMPONENTE CONTROLADO: CORRECCIÓN DE PROPS */}
+      <PizzaSelector
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategoryChange}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {pizzas.map((pizza) => (
@@ -109,7 +118,7 @@ export function PizzaMenu() {
       {pizzas.length === 0 && (
         <div className="text-center py-8">
           <p className="text-lg">
-            No hay pizzas disponibles en esta categoría.
+            No hay pizzas disponibles en la categoría **{selectedCategory}**.
           </p>
         </div>
       )}

@@ -5,6 +5,12 @@
       "static/chunks/_app-pages-browser_components_OrderTrackingMap_tsx.js"
     ]
   },
+  "app/page.tsx -> @/components/OrderTrackingMap": {
+    "id": "app/page.tsx -> @/components/OrderTrackingMap",
+    "files": [
+      "static/chunks/_app-pages-browser_components_OrderTrackingMap_tsx.js"
+    ]
+  },
   "components/OrderTrackingMap.tsx -> leaflet": {
     "id": "components/OrderTrackingMap.tsx -> leaflet",
     "files": [

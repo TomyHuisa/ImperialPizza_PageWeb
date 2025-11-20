@@ -1,12 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+// 🔥 IMPORTAR useRef
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+import dynamic from "next/dynamic";
 import { PizzaCard } from "@/components/pizza-card";
 import PizzaSelector from "@/components/PizzaSelector";
 import Header from "@/components/Header";
 import PocketBaseService from "@/lib/pocketbase";
 import { CartModal } from "@/components/cart-modal";
-import { useCart } from "@/contexts/CartContext"; // Importar el hook del carrito
+import { useAuth } from "@/contexts/AuthContext";
+
+// Importación dinámica... (sin cambios)
+const OrderTrackingMap = dynamic(
+  () => import("@/components/OrderTrackingMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-lg font-semibold">Cargando mapa...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 interface Pizza {
   id: string;
@@ -18,151 +38,263 @@ interface Pizza {
   category: string;
 }
 
+// FUNCIÓN DE NORMALIZACIÓN DE CADENAS (sin cambios)
+const normalizeString = (str: string) => {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
+
+// Constante de Puntos (sin cambios)
+const POINTS_PER_DOLLAR_REDEEM = 50;
+
 export default function Home() {
+  const { toast } = useToast();
+  const { user, refreshUser, addToCart } = useAuth();
+
   const [selectedCategory, setSelectedCategory] = useState("clasicas");
   const [allPizzas, setAllPizzas] = useState<Pizza[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPizzas, setLoadingPizzas] = useState(true);
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
 
-  // Estados para el modal del carrito
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [selectedPizza, setSelectedPizza] = useState<Pizza | null>(null);
   const [cartComment, setCartComment] = useState("");
+  const [isRedemptionMode, setIsRedemptionMode] = useState(false);
 
-  // Usar el contexto del carrito
-  const { addToCart } = useCart();
+  // 🔥 NUEVA REFERENCIA PARA EVITAR DOBLE LLAMADA EN STRICT MODE
+  const hasFetchedRef = useRef(false);
 
-  // Cargar TODAS las pizzas al inicio
   useEffect(() => {
+    // 🔥 FIX: Si ya se ha ejecutado la lógica de fetch, salimos.
+    if (hasFetchedRef.current) {
+      return;
+    }
+
+    // Marcamos la bandera como true ANTES de la llamada asíncrona.
+    hasFetchedRef.current = true;
+
     const loadAllPizzas = async () => {
-      setLoading(true);
+      setLoadingPizzas(true);
       try {
         const pb = PocketBaseService.getInstance();
 
-        const records = await pb.collection("pizzas").getFullList({
+        const records = await pb.collection("pizzas").getFullList<Pizza>({
           sort: "-popular,name",
         });
 
-        const pizzasData = records.map((record: any) => ({
+        // Mapeamos los datos para obtener la URL de la imagen
+        const pizzasData: Pizza[] = records.map((record: any) => ({
           id: record.id,
           name: record.name,
           description: record.description,
           category: record.category,
           price: record.price,
+          stock: record.stock,
           image: record.image
             ? pb.files.getUrl(record, record.image)
             : "/placeholder.svg",
-          stock: record.stock,
         }));
 
         setAllPizzas(pizzasData);
-      } catch (error) {
-        console.error("Error loading pizzas:", error);
-        setAllPizzas([]);
+      } catch (error: any) {
+        // En este punto, si PocketBase auto-cancela, el error.message es 'The request was autocancelled.'
+        console.error("Error al cargar pizzas:", error);
+
+        let description =
+          error.message ||
+          "No se pudieron cargar las pizzas. Intenta de nuevo.";
+        if (error.status === 404) {
+          description =
+            "Colección 'pizzas' no encontrada. Verifica el nombre en PocketBase.";
+        } else if (error.status === 403) {
+          description =
+            "Acceso denegado. Asegúrate de que los permisos de la colección 'pizzas' estén configurados para 'Anyone'.";
+        }
+
+        // No mostramos el toast si el error es la autocancelación
+        if (error.message !== "The request was autocancelled.") {
+          toast({
+            variant: "destructive",
+            title: "❌ Error de conexión al API",
+            description: description,
+          });
+        }
       } finally {
-        setLoading(false);
+        setLoadingPizzas(false);
       }
     };
 
     loadAllPizzas();
-  }, []);
+  }, [toast]);
 
-  // Filtrar pizzas localmente por categoría
-  const filteredPizzas = allPizzas.filter((pizza) =>
-    selectedCategory === "personaliza"
-      ? false
-      : pizza.category === selectedCategory
+  // ... (El resto del código es el mismo) ...
+
+  const filteredPizzas = allPizzas.filter(
+    (pizza) =>
+      normalizeString(pizza.category) === normalizeString(selectedCategory)
   );
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-  };
+  const handleAddToCartClick = (
+    pizza: Pizza,
+    isRedemption: boolean = false
+  ) => {
+    if (pizza.stock <= 0) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Agotado",
+        description: "Sin stock disponible.",
+      });
+      return;
+    }
 
-  // Función para abrir el modal cuando se hace clic en "Agregar al Carrito"
-  const handleAddToCartClick = (pizza: Pizza) => {
-    if (pizza.stock <= 0) return;
+    if (isRedemption && user) {
+      const pointsCost = Math.floor(pizza.price * POINTS_PER_DOLLAR_REDEEM);
+      if (user.points < pointsCost) {
+        toast({
+          variant: "destructive",
+          title: "❌ Puntos insuficientes",
+          description: `Necesitas ${pointsCost} pts para canjear esta pizza.`,
+        });
+        return;
+      }
+    }
 
     setSelectedPizza(pizza);
-    setCartComment("");
+    setCartComment(isRedemption ? "Canje de Puntos" : "");
+    setIsRedemptionMode(isRedemption);
     setIsCartModalOpen(true);
   };
 
   const handleConfirmAddToCart = async () => {
     if (!selectedPizza) return;
 
-    const success = await addToCart({
-      pizzaId: selectedPizza.id,
-      name: selectedPizza.name,
-      description: selectedPizza.description,
-      price: selectedPizza.price,
-      comment: cartComment,
-      image: selectedPizza.image,
-    });
+    if (isRedemptionMode) {
+      if (!user || !user.id || !refreshUser) {
+        setIsCartModalOpen(false);
+        return;
+      }
+      const pointsCost = Math.floor(
+        selectedPizza.price * POINTS_PER_DOLLAR_REDEEM
+      );
 
-    if (success) {
+      try {
+        const pb = PocketBaseService.getInstance();
+        const newPoints = user.points - pointsCost;
+
+        await pb.collection("users").update(user.id, { points: newPoints });
+
+        addToCart(
+          {
+            id: selectedPizza.id,
+            name: selectedPizza.name,
+            price: 0.0,
+            image: selectedPizza.image,
+          },
+          `[CANJE PUNTOS: -${pointsCost}pts] ${cartComment}`
+        );
+
+        await refreshUser();
+
+        toast({
+          title: "🎉 Canje Exitoso",
+          description: `Se agregó ${selectedPizza.name} al carrito. Se restaron ${pointsCost} puntos.`,
+          className: "bg-yellow-50 border-yellow-200",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "❌ Error en el canje",
+          description:
+            "No se pudo procesar el canje de puntos. Intenta de nuevo.",
+        });
+      }
+    } else {
+      addToCart(
+        {
+          id: selectedPizza.id,
+          name: selectedPizza.name,
+          price: selectedPizza.price,
+          image: selectedPizza.image,
+        },
+        cartComment
+      );
+
       toast({
         title: "✅ Agregado al carrito",
-        description: `${selectedPizza.name} ha sido agregada a tu pedido.`,
-        duration: 2000,
+        description: `Se agregó ${selectedPizza.name} al carrito.`,
       });
-
-      // Cerrar modal después de agregar
-      setIsCartModalOpen(false);
-      setSelectedPizza(null);
-      setCartComment("");
     }
-    // Si no fue success, el toast ya se mostró en el contexto
+
+    setIsCartModalOpen(false);
+    setSelectedPizza(null);
+    setCartComment("");
+    setIsRedemptionMode(false);
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-12 text-center">
-          Cargando pizzas...
-        </div>
-      </main>
-    );
-  }
+  const handleTrackOrder = (orderId: string) => {
+    setTrackingOrderId("simulated_id");
+  };
 
   return (
     <main className="min-h-screen bg-background">
       <Header />
 
-      <section className="container mx-auto px-4 py-12">
-        <PizzaSelector onCategoryChange={handleCategoryChange} />
+      {/* Hero Section */}
+      <section className="bg-red-600 text-white py-16 mb-12">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 font-serif">
+            La Mejor Pizza de la Ciudad
+          </h1>
+          <p className="text-xl mb-8">
+            Hecha con ingredientes frescos y pasión italiana.
+          </p>
+          <Link
+            href="#menu"
+            className="bg-white text-red-600 font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:bg-gray-100 transition-colors"
+          >
+            Ver Menú
+          </Link>
+        </div>
+      </section>
 
-        <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
-          Nuestras Pizzas
+      {/* Menu Section */}
+      <section id="menu" className="container mx-auto px-4 py-8">
+        <h2 className="text-3xl font-bold mb-6 text-center text-foreground">
+          Nuestro Menú
         </h2>
 
-        {selectedCategory === "personaliza" ? (
-          <div className="bg-card border border-border rounded-lg p-8 text-center">
-            <h3 className="text-2xl font-bold text-foreground mb-4">
-              Personaliza tu pizza
+        {/* Selector de Categorías (Controlado) */}
+        <PizzaSelector
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
+
+        {loadingPizzas ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-lg font-semibold">Cargando pizzas...</p>
+          </div>
+        ) : allPizzas.length === 0 ? (
+          <div className="text-center py-12 p-8 bg-card rounded-lg shadow-lg max-w-lg mx-auto">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">
+              Menú no disponible
             </h3>
-            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Crea tu pizza perfecta eligiendo entre nuestra selección de
-              ingredientes frescos y de alta calidad. Desde la masa hasta los
-              toppings, tú decides.
+            <p className="text-muted-foreground mb-6">
+              Lo sentimos, no hay pizzas disponibles en este momento. Vuelve
+              pronto.
             </p>
-            <div className="bg-muted p-6 rounded-lg max-w-2xl mx-auto">
-              <p className="text-muted-foreground mb-4">
-                Próximamente: Nuestro creador de pizzas personalizadas estará
-                disponible
-              </p>
-              <button className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                Notificarme cuando esté disponible
-              </button>
-            </div>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
               {filteredPizzas.map((pizza) => (
                 <PizzaCard
                   key={pizza.id}
                   pizza={pizza}
-                  onAddToCart={handleAddToCartClick} // Pasamos la función
+                  onAddToCart={handleAddToCartClick}
                 />
               ))}
             </div>
@@ -170,8 +302,8 @@ export default function Home() {
             {filteredPizzas.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground">
-                  No hay pizzas disponibles en la categoría "{selectedCategory}
-                  ".
+                  No hay pizzas disponibles en la categoría "{selectedCategory}"
+                  .
                 </p>
               </div>
             )}
@@ -179,6 +311,66 @@ export default function Home() {
         )}
       </section>
 
+      <section className="container mx-auto px-4 py-12 bg-card rounded-lg shadow-lg mt-12">
+        <h2 className="text-3xl font-bold mb-6 text-center text-foreground">
+          Rastrea tu Pedido
+        </h2>
+        <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+          <div className="w-full md:w-1/2">
+            <p className="text-lg mb-4 text-muted-foreground">
+              Ingresa el ID de tu pedido para ver su estado y ubicación en
+              tiempo real.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Ingresa ID del pedido (ej: 1a2b3c)"
+                className="flex-1 p-3 border border-border rounded-lg focus:ring-red-500 focus:border-red-500"
+                onChange={() => {
+                  /* manejar el estado de input si es necesario */
+                }}
+              />
+              <button
+                onClick={() => handleTrackOrder("simulated_id")}
+                className="bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                Rastrear
+              </button>
+            </div>
+          </div>
+          <div className="w-full md:w-1/2 p-4 border rounded-lg bg-gray-50">
+            <h3 className="font-bold text-lg mb-2">Estados de Pedido:</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                Confirmado
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
+                En preparación
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                En camino
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-indigo-500 rounded-full mr-2"></span>
+                Para retirar
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                Entregado
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                Cancelado
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
       <footer className="border-t border-border bg-card mt-16">
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-muted-foreground">
@@ -186,6 +378,14 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Modal de Rastreo */}
+      {trackingOrderId && (
+        <OrderTrackingMap
+          orderId={trackingOrderId}
+          onClose={() => setTrackingOrderId(null)}
+        />
+      )}
 
       {/* Modal del carrito */}
       <CartModal
@@ -195,6 +395,7 @@ export default function Home() {
         comment={cartComment}
         onCommentChange={setCartComment}
         onConfirm={handleConfirmAddToCart}
+        isRedemption={isRedemptionMode}
       />
     </main>
   );

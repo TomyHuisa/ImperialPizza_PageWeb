@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 
 // Importación dinámica del componente de rastreo
 const OrderTrackingMap = dynamic(
-  () => import("@/components/OrderTrackingMap").then((mod) => mod.default),
+  () => import("@/components/OrderTrackingMap"), // ← Verifica esta ruta
   {
     ssr: false,
     loading: () => (

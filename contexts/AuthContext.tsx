@@ -3,13 +3,18 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import PocketBaseService from "@/lib/pocketbase";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast"; // Añadido para manejo de errores
+
+// =================================================================
+// Interfaces
+// =================================================================
 
 interface User {
   id: string;
   username: string;
   phone: string;
   email: string;
-  points: number;
+  points: number; // Crucial: Asegurar que este campo existe en PocketBase
   location?: string;
   created?: string;
   updated?: string;
@@ -20,6 +25,14 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
+  image: string;
+  comment: string; // Añadido para la gestión del modal de carrito
+}
+
+interface PizzaToAdd {
+  id: string;
+  name: string;
+  price: number;
   image: string;
 }
 
@@ -38,7 +51,7 @@ interface AuthContextType {
     location?: string;
   }) => Promise<void>;
   cart: CartItem[];
-  addToCart: (pizza: any) => void;
+  addToCart: (pizza: PizzaToAdd, comment: string) => void; // Firma actualizada
   removeFromCart: (pizzaId: string) => void;
   updateCartItem: (pizzaId: string, quantity: number) => void;
   clearCart: () => void;
@@ -48,6 +61,7 @@ interface AuthContextType {
   userOrders: any[];
   loading: boolean;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<void>; // 🔥 Añadido: Importante para actualizar puntos
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,48 +72,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  // const { toast } = useToast(); // Si quieres usar toasts aquí
 
   const isAuthenticated = !!user;
+  const pb = PocketBaseService.getInstance();
 
-  useEffect(() => {
-    initializeAuth();
-  }, []);
+  // Función para obtener la información del usuario desde el objeto de PocketBase
+  const getUserInfo = (userData: any): User => ({
+    id: userData.id,
+    username: userData.username || "",
+    phone: userData.phone || "",
+    email: userData.email,
+    points: userData.points || 0,
+    location: userData.location || "",
+    created: userData.created,
+    updated: userData.updated,
+  });
 
-  useEffect(() => {
-    // Guardar carrito en localStorage siempre, incluso si está vacío
-    if (typeof window !== "undefined") {
-      localStorage.setItem("pizzaImperial_cart", JSON.stringify(cart));
+  // 🔥 Implementación de refreshUser: Actualiza los datos del usuario logueado
+  const refreshUser = async () => {
+    try {
+      const authData = await pb.collection("users").authRefresh();
+
+      if (pb.authStore.isValid && authData && authData.record) {
+        setUser(getUserInfo(authData.record));
+        // Opcional: Refrescar órdenes aquí si es necesario
+      } else {
+        // Si el token es inválido, forzar logout
+        logout(false);
+      }
+    } catch (error) {
+      // Ignorar el error de "token inválido" que ocurre a menudo si no hay sesión
+      console.log(
+        "No se pudo refrescar la sesión (posiblemente no hay sesión activa)."
+      );
+      // logout(false); // No forzar logout silencioso aquí, se encarga initializeAuth
     }
-  }, [cart]);
+  };
 
   const initializeAuth = async () => {
     try {
-      if (
-        typeof window !== "undefined" &&
-        PocketBaseService.isAuthenticated()
-      ) {
-        const userData = PocketBaseService.getCurrentUser();
-        if (userData) {
-          const userInfo: User = {
-            id: userData.id,
-            username: userData.username || "",
-            phone: userData.phone || "",
-            email: userData.email,
-            points: userData.points || 0,
-            location: userData.location || "",
-            created: userData.created,
-            updated: userData.updated,
-          };
-          setUser(userInfo);
-
-          try {
-            const orders = await PocketBaseService.getUserOrders(userData.id);
-            setUserOrders(orders);
-          } catch (orderError) {
-            console.error("Error loading user orders:", orderError);
-            setUserOrders([]);
-          }
-        }
+      if (typeof window !== "undefined") {
+        // Intentar refrescar para validar el token y obtener datos frescos
+        await refreshUser();
       }
 
       // Cargar carrito desde localStorage
@@ -116,27 +131,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error initializing auth:", error);
+      // Forzar logout si initializeAuth falla catastróficamente
+      // logout(false);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  useEffect(() => {
+    // Guardar carrito en localStorage siempre
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pizzaImperial_cart", JSON.stringify(cart));
+    }
+  }, [cart]);
 
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
       const authData = await PocketBaseService.login(username, password);
 
-      const userInfo: User = {
-        id: authData.record.id,
-        username: authData.record.username || "",
-        phone: authData.record.phone || "",
-        email: authData.record.email,
-        points: authData.record.points || 0,
-        location: authData.record.location || "",
-        created: authData.record.created,
-        updated: authData.record.updated,
-      };
-
+      const userInfo = getUserInfo(authData.record);
       setUser(userInfo);
 
       try {
@@ -148,6 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Error loading user orders after login:", orderError);
         setUserOrders([]);
       }
+
+      // La redirección DEBE manejarse en el componente de login/registro.
+      // Por ejemplo, router.push("/").
     } catch (error: any) {
       console.error("Login error:", error);
       throw new Error(error.message || "Error al iniciar sesión");
@@ -183,15 +204,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) throw new Error("Usuario no autenticado");
 
     try {
-      await PocketBaseService.updateProfile(user.id, data);
-      setUser((prev) => (prev ? { ...prev, ...data } : null));
+      const updatedRecord = await PocketBaseService.updateProfile(
+        user.id,
+        data
+      );
+
+      // Actualizar solo los campos modificados en el estado local
+      setUser((prev) => (prev ? { ...prev, ...updatedRecord } : null));
     } catch (error: any) {
       console.error("Profile update error:", error);
       throw new Error(error.message || "Error al actualizar el perfil");
     }
   };
 
-  const logout = () => {
+  const logout = (shouldRedirect: boolean = true) => {
     try {
       PocketBaseService.logout();
       setUser(null);
@@ -200,25 +226,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("pizzaImperial_cart");
       }
-      router.push("/");
+      if (shouldRedirect) {
+        router.push("/");
+      }
     } catch (error) {
       console.error("Logout error:", error);
     }
   };
 
-  const addToCart = (pizza: any) => {
+  // Firma actualizada para incluir el comentario
+  const addToCart = (pizza: PizzaToAdd, comment: string) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find(
-        (item) => item.pizzaId === pizza.id.toString()
+      // Usar pizzaId + comment como clave única para permitir la misma pizza
+      // con diferentes comentarios (e.g., "Sin aceitunas" vs "Extra queso")
+      const uniqueKey = `${pizza.id.toString()}-${comment}`;
+
+      const existingItemIndex = prevCart.findIndex(
+        (item) => `${item.pizzaId}-${item.comment}` === uniqueKey
       );
 
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.pizzaId === pizza.id.toString()
+      if (existingItemIndex !== -1) {
+        // Item existente: incrementar cantidad
+        return prevCart.map((item, index) =>
+          index === existingItemIndex
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
+        // Nuevo item
         return [
           ...prevCart,
           {
@@ -227,6 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             price: pizza.price,
             quantity: 1,
             image: pizza.image,
+            comment: comment || "",
           },
         ];
       }
@@ -238,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCartItem = (pizzaId: string, quantity: number) => {
+    // Si la cantidad es 0 o menos, eliminar
     if (quantity <= 0) {
       removeFromCart(pizzaId);
       return;
@@ -255,6 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getCartTotal = () => {
+    // Suma todos los precios (incluye precios de 0.00 para canjes)
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
@@ -267,20 +305,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (cart.length === 0) throw new Error("Carrito vacío");
 
     try {
+      const total = getCartTotal();
+      const pointsEarned = Math.floor(total); // Asumiendo 1 punto por $1 gastado
+
       const orderData = {
         user: user.id,
         items: cart,
-        total: getCartTotal(),
+        total: total,
         status: "pending",
-        points_earned: Math.floor(getCartTotal()),
+        points_earned: pointsEarned,
       };
 
       const order = await PocketBaseService.createOrder(orderData);
 
-      // Actualizar puntos del usuario
-      const newPoints = user.points + orderData.points_earned;
-      await PocketBaseService.updateProfile(user.id, { points: newPoints });
-      setUser((prev) => (prev ? { ...prev, points: newPoints } : null));
+      // Si hay puntos a ganar, actualizar el perfil
+      if (pointsEarned > 0) {
+        const newPoints = user.points + pointsEarned;
+        await PocketBaseService.updateProfile(user.id, { points: newPoints });
+        // Actualizar el estado local (o usar refreshUser, pero la actualización directa es más rápida)
+        setUser((prev) => (prev ? { ...prev, points: newPoints } : null));
+      }
 
       // Limpiar carrito después de la orden exitosa
       clearCart();
@@ -309,6 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userOrders,
     loading,
     isAuthenticated,
+    refreshUser, // 🔥 Exportado
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
