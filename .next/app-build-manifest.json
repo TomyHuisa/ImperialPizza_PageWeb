@@ -21,15 +21,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
-    "/historial-pedidos/page": [
+    "/servicio-cliente/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/historial-pedidos/page.js"
+      "static/chunks/app/servicio-cliente/page.js"
     ],
-    "/perfil/page": [
+    "/sobre-nosotros/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/perfil/page.js"
+      "static/chunks/app/sobre-nosotros/page.js"
+    ],
+    "/register/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/register/page.js"
     ]
   }
 }
