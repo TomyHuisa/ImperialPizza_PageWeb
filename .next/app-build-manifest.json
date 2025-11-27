@@ -1,15 +1,20 @@
 {
   "pages": {
-    "/page": [
+    "/perfil/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/perfil/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ],
     "/carrito/page": [
       "static/chunks/webpack.js",
@@ -21,20 +26,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
-    "/servicio-cliente/page": [
+    "/historial-pedidos/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/servicio-cliente/page.js"
+      "static/chunks/app/historial-pedidos/page.js"
     ],
     "/sobre-nosotros/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/sobre-nosotros/page.js"
     ],
-    "/register/page": [
+    "/servicio-cliente/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/register/page.js"
+      "static/chunks/app/servicio-cliente/page.js"
     ]
   }
 }

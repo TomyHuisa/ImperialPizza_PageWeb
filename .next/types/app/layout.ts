@@ -1,4 +1,4 @@
-// File: C:\Users\TMons\Documents\PW\ImperialPizza_PageWeb\app\layout.tsx
+// File: /home/etec/Documentos/ImperialPizza_PageWeb/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -4,27 +4,25 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import dynamic from "next/dynamic";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  ArrowLeft,
+  MapPin,
+  XCircle,
+  Bike,
+  Store,
+  CheckCircle,
+} from "lucide-react";
+import PocketBaseService from "@/lib/pocketbase";
 
-// Importación dinámica del componente de rastreo
 const OrderTrackingMap = dynamic(
-  () => import("@/components/OrderTrackingMap"), // ← Verifica esta ruta
-  {
-    ssr: false,
-    loading: () => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-lg font-semibold">Cargando mapa...</p>
-        </div>
-      </div>
-    ),
-  }
+  () => import("@/components/OrderTrackingMap"),
+  { ssr: false }
 );
 
 interface OrderItem {
   pizzaId: string;
   name: string;
-  description: string;
   price: number;
   quantity: number;
   comment: string;
@@ -33,628 +31,283 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  collectionId: string;
-  collectionName: string;
   created: string;
-  updated: string;
-  customer_name: string;
-  phone: string;
   delivery_address: string;
   customer_notes: string;
   payment_method: string;
   items: OrderItem[];
   total: number;
   status: string;
-  points_earned?: number; // 🔥 NUEVO CAMPO OPCIONAL
+  points_earned?: number;
+  points_spent?: number;
+  service?: "delivery" | "takeaway"; // Mapeado correctamente
 }
 
 export default function OrderHistoryPage() {
+  const { user, userOrders, loading, fetchUserOrders, refreshUser } = useAuth();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [phoneFilter, setPhoneFilter] = useState("");
   const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
 
-  // Cargar pedidos desde PocketBase
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          "http://127.0.0.1:8090/api/collections/orders/records?sort=-created&expand=user"
-        );
-
-        if (!response.ok) {
-          throw new Error("Error al cargar los pedidos");
-        }
-
-        const data = await response.json();
-        console.log("Pedidos cargados:", data.items);
-        setOrders(data.items || []);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        toast({
-          variant: "destructive",
-          title: "❌ Error",
-          description: "No se pudieron cargar los pedidos.",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [toast]);
-
-  // Filtrar pedidos por teléfono
-  const filteredOrders = phoneFilter
-    ? orders.filter(
-        (order) =>
-          order.phone.includes(phoneFilter) ||
-          order.customer_name.toLowerCase().includes(phoneFilter.toLowerCase())
-      )
-    : orders;
-
-  // 🔥 ACTUALIZADO: Calcular puntos totales - SOLO PEDIDOS NO CANCELADOS
-  const totalPoints = filteredOrders
-    .filter((order) => order.status !== "cancelled")
-    .reduce((total, order) => {
-      const orderPoints =
-        order.points_earned !== undefined
-          ? order.points_earned
-          : order.items.reduce(
-              (itemTotal, item) => itemTotal + item.quantity * 50,
-              0
-            );
-      return total + orderPoints;
-    }, 0);
-
-  // Función para formatear fecha
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // 🔥 ACTUALIZADO: Función para cancelar pedido - REVERTIR STOCK Y PUNTOS
-  const cancelOrder = async (orderId: string) => {
-    if (!confirm("¿Estás seguro de que quieres cancelar este pedido?")) {
-      return;
+    if (user) {
+      refreshUser?.();
+      fetchUserOrders?.(user.id);
     }
+  }, [user?.id]);
 
+  // CANCELAR PEDIDO
+  const handleCancelOrder = async (order: Order) => {
+    if (!confirm("¿Cancelar pedido?")) return;
     try {
-      const orderToCancel = orders.find((order) => order.id === orderId);
-      if (!orderToCancel) {
-        throw new Error("Pedido no encontrado");
-      }
+      const pb = PocketBaseService.getInstance();
+      await pb.collection("orders").update(order.id, { status: "cancelled" });
 
-      const response = await fetch(
-        `http://127.0.0.1:8090/api/collections/orders/records/${orderId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: "cancelled",
-            updated: new Date().toISOString(),
-            points_earned: 0, // 🔥 PONER PUNTOS EN 0 AL CANCELAR
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error response from PocketBase:", errorData);
-        throw new Error(`Error al cancelar el pedido: ${response.status}`);
-      }
-
-      const updatedOrder = await response.json();
-      console.log("Pedido cancelado exitosamente:", updatedOrder);
-
-      // Revertir el stock de las pizzas
-      await restorePizzaStock(orderToCancel.items);
-
-      // Actualizar la lista local
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId
-            ? {
-                ...order,
-                status: "cancelled",
-                updated: updatedOrder.updated,
-                points_earned: 0, // 🔥 ACTUALIZAR PUNTOS A 0 LOCALMENTE
-              }
-            : order
-        )
-      );
-
-      toast({
-        title: "✅ Pedido cancelado",
-        description:
-          "El pedido ha sido cancelado exitosamente. Stock y puntos restaurados.",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error("Error cancelling order:", error);
-      toast({
-        variant: "destructive",
-        title: "❌ Error",
-        description:
-          "No se pudo cancelar el pedido. Verifica la consola para más detalles.",
-      });
-    }
-  };
-
-  // Función para restaurar stock de pizzas al cancelar pedido
-  const restorePizzaStock = async (items: OrderItem[]) => {
-    try {
-      console.log("🔄 Restaurando stock de pizzas...");
-
-      for (const item of items) {
+      // Devolver Stock
+      for (const item of order.items) {
         try {
-          const pizzaResponse = await fetch(
-            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`
-          );
-
-          if (!pizzaResponse.ok) {
-            console.error(
-              `Error obteniendo pizza ${item.pizzaId}: ${pizzaResponse.status}`
-            );
-            continue;
-          }
-
-          const pizzaData = await pizzaResponse.json();
-          const currentStock = pizzaData.stock || 0;
-          const newStock = currentStock + item.quantity;
-
-          console.log(
-            `Restaurando stock de ${item.name}: ${currentStock} -> ${newStock}`
-          );
-
-          const updateResponse = await fetch(
-            `http://127.0.0.1:8090/api/collections/pizzas/records/${item.pizzaId}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                stock: newStock,
-              }),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            console.error(
-              `Error actualizando stock de ${item.name}: ${updateResponse.status}`
-            );
-          } else {
-            console.log(`✅ Stock de ${item.name} restaurado exitosamente`);
-          }
-        } catch (error) {
-          console.error(`Error procesando pizza ${item.pizzaId}:`, error);
+          const pizza = await pb.collection("pizzas").getOne(item.pizzaId);
+          await pb
+            .collection("pizzas")
+            .update(item.pizzaId, {
+              stock: (pizza.stock || 0) + item.quantity,
+            });
+        } catch (err) {
+          console.error(err);
         }
       }
 
-      toast({
-        title: "✅ Stock restaurado",
-        description: "El stock de las pizzas ha sido restaurado correctamente.",
-        duration: 3000,
-      });
+      toast({ title: "Pedido Cancelado", description: "Stock restaurado." });
+      if (user) await fetchUserOrders(user.id);
     } catch (error) {
-      console.error("Error general restaurando stock:", error);
       toast({
         variant: "destructive",
-        title: "⚠️ Error restaurando stock",
-        description:
-          "El pedido se canceló pero hubo un error restaurando el stock. Contacta al administrador.",
+        title: "Error",
+        description: "No se pudo cancelar.",
       });
     }
   };
 
-  // Función para obtener el color del estado
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "confirmed":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "preparing":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "onway":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "withdrawal":
-        return "bg-indigo-100 text-indigo-800 border-indigo-200";
-      case "delivered":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+  // 🔥 CONFIRMAR ENTREGA (SOLUCIÓN A PUNTOS QUE NO SE SUMAN)
+  const handleConfirmDelivery = async (order: Order) => {
+    if (
+      !confirm("¿Confirmar que recibiste el pedido? Se te sumarán los puntos.")
+    )
+      return;
+    try {
+      const pb = PocketBaseService.getInstance();
+
+      // 1. Marcar como entregado en BD
+      await pb.collection("orders").update(order.id, { status: "delivered" });
+
+      // 2. Sumar puntos al usuario ACTUALMENTE
+      if (user && order.points_earned && order.points_earned > 0) {
+        const currentPoints = user.points || 0;
+        const newPoints = currentPoints + order.points_earned;
+
+        await pb.collection("users").update(user.id, { points: newPoints });
+
+        toast({
+          title: "¡Puntos Sumados! 🎉",
+          description: `Has ganado +${order.points_earned} puntos.`,
+          className: "bg-green-50 border-green-200",
+        });
+      }
+
+      // 3. Recargar datos
+      await refreshUser();
+      if (user) await fetchUserOrders(user.id);
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al confirmar entrega.",
+      });
     }
   };
 
-  // Función para traducir el estado
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Pendiente";
-      case "confirmed":
-        return "Confirmado";
-      case "preparing":
-        return "En preparación";
-      case "onway":
-        return "En camino";
-      case "withdrawal":
-        return "Para retirar";
-      case "delivered":
-        return "Entregado";
-      case "cancelled":
-        return "Cancelado";
-      default:
-        return status;
-    }
-  };
-
-  // Función para verificar si se puede cancelar el pedido
-  const canCancelOrder = (status: string) => {
+  const renderStatusBadge = (status: string) => {
+    // 🔥 Ajustamos los status para que coincidan con la BD (onway)
+    const labels: any = {
+      pending: "Pendiente",
+      onway: "En Camino", // Status detectado de tu imagen
+      en_camino: "En Camino",
+      delivered: "Entregado",
+      cancelled: "Cancelado",
+    };
+    const styles: any = {
+      pending: "bg-yellow-100 text-yellow-800",
+      onway: "bg-purple-100 text-purple-800",
+      en_camino: "bg-purple-100 text-purple-800",
+      delivered: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800",
+    };
     return (
-      status === "pending" || status === "confirmed" || status === "preparing"
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-bold ${
+          styles[status] || "bg-gray-100"
+        }`}
+      >
+        {labels[status] || status}
+      </span>
     );
   };
-
-  // Función para verificar si se puede volver a pedir
-  const canReorder = (status: string) => {
-    return (
-      status === "withdrawal" ||
-      status === "delivered" ||
-      status === "cancelled"
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando pedidos...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <Link
-              href="/"
-              className="p-2 rounded-md hover:bg-muted transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground font-serif text-center flex-1">
-              Pizzeria Imperial
-            </h1>
-            <div className="w-10"></div>
-          </div>
-        </div>
-      </header>
-
-      {/* Contenido principal */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Historial de Pedidos
-          </h1>
-          <p className="text-muted-foreground">
-            Revisa y gestiona todos tus pedidos en Pizzeria Imperial
-          </p>
-        </div>
-
-        {/* Filtro por teléfono/nombre */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Buscar por teléfono o nombre
-              </label>
-              <input
-                type="text"
-                placeholder="Ingresa tu teléfono o nombre..."
-                value={phoneFilter}
-                onChange={(e) => setPhoneFilter(e.target.value)}
-                className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {filteredOrders.length} pedidos encontrados
-            </div>
-          </div>
-        </div>
-
-        {/* Resumen de puntos */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                Tus Puntos Acumulados
-              </h2>
-              <p className="text-muted-foreground">
-                Gana 50 puntos por cada pizza que ordenes
-              </p>
-            </div>
-            <div className="bg-red-600 text-white py-3 px-6 rounded-lg text-center mt-4 sm:mt-0">
-              <div className="text-2xl font-bold">{totalPoints}</div>
-              <div className="text-sm">puntos totales</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Lista de pedidos */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-xl font-semibold text-foreground">
-              Pedidos Recientes
-            </h2>
-          </div>
-
-          <div className="divide-y divide-border">
-            {filteredOrders.map((order) => {
-              // 🔥 ACTUALIZADO: Calcular puntos del pedido individual
-              const orderPoints =
-                order.status === "cancelled"
-                  ? 0
-                  : order.points_earned !== undefined
-                  ? order.points_earned
-                  : order.items.reduce(
-                      (total, item) => total + item.quantity * 50,
-                      0
-                    );
-              const totalItems = order.items.reduce(
-                (total, item) => total + item.quantity,
-                0
-              );
-
-              return (
-                <div
-                  key={order.id}
-                  className="p-6 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                    {/* Información principal del pedido */}
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                        <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                          {formatDate(order.created)}
-                        </span>
-                        <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full border ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {getStatusText(order.status)}
-                        </span>
-                        {order.payment_method && (
-                          <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded-full border border-gray-200">
-                            Pago: {order.payment_method}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Información del cliente */}
-                      <div className="mb-3">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Cliente:</strong> {order.customer_name} |{" "}
-                          {order.phone}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Dirección:</strong> {order.delivery_address}
-                        </p>
-                        {order.customer_notes && (
-                          <p className="text-sm text-muted-foreground">
-                            <strong>Notas:</strong> {order.customer_notes}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Items del pedido */}
-                      <div className="space-y-2">
-                        {order.items.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <div className="flex-1">
-                              <span className="font-medium text-foreground">
-                                {item.name}
-                              </span>
-                              {item.comment && (
-                                <span className="text-muted-foreground ml-2">
-                                  ({item.comment})
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-muted-foreground">
-                              x{item.quantity} - $
-                              {(item.price * item.quantity).toFixed(2)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Información lateral */}
-                    <div className="flex flex-col gap-3 min-w-[200px]">
-                      {/* Total y puntos */}
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-foreground">
-                          Total: ${order.total.toFixed(2)}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {totalItems} items • {orderPoints} puntos
-                        </div>
-                      </div>
-
-                      {/* Botones de acción */}
-                      <div className="flex flex-col gap-2">
-                        {canCancelOrder(order.status) && (
-                          <button
-                            onClick={() => cancelOrder(order.id)}
-                            className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                          >
-                            Cancelar Pedido
-                          </button>
-                        )}
-
-                        {order.status === "onway" && (
-                          <button
-                            onClick={() => setTrackingOrderId(order.id)}
-                            className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                          >
-                            Rastrear Pedido
-                          </button>
-                        )}
-
-                        {canReorder(order.status) ? (
-                          <Link
-                            href="/"
-                            className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium text-center"
-                          >
-                            Volver a Pedir
-                          </Link>
-                        ) : (
-                          <button
-                            disabled
-                            className="bg-gray-400 text-gray-200 py-2 px-4 rounded-lg cursor-not-allowed text-sm font-medium text-center"
-                          >
-                            Volver a Pedir
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredOrders.length === 0 && (
-            <div className="p-12 text-center">
-              <svg
-                className="w-16 h-16 text-muted-foreground mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {phoneFilter
-                  ? "No hay pedidos con ese filtro"
-                  : "No hay pedidos anteriores"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {phoneFilter
-                  ? "Intenta con otro teléfono o nombre."
-                  : "Cuando hagas tu primer pedido, aparecerá aquí."}
-              </p>
-              <Link
-                href="/"
-                className="inline-block bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Hacer mi primer pedido
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Información adicional sobre puntos */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-800 mb-2">
-            ¿Cómo funcionan los puntos?
-          </h3>
-          <ul className="text-blue-700 space-y-1">
-            <li>• Ganas 50 puntos por cada pizza que ordenes</li>
-            <li>• 100 puntos = $1 de descuento en tu próxima compra</li>
-            <li>• Los puntos no expiran</li>
-            <li>• Puedes canjear tus puntos en cualquier momento</li>
-          </ul>
-        </div>
-
-        {/* Información sobre estados de pedido */}
-        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">
-            Estados del pedido
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-green-700">
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
-              Pendiente
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-              Confirmado
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-              En preparación
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
-              En camino
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-indigo-500 rounded-full mr-2"></span>
-              Para retirar
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-              Entregado
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-              Cancelado
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="bg-white border-b sticky top-0 z-20 shadow-sm mb-8">
+        <div className="container mx-auto px-4 py-4 flex items-center">
+          <Link
+            href="/"
+            className="flex items-center text-gray-600 hover:text-red-600"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" /> Volver
+          </Link>
+          <h1 className="text-xl font-bold ml-auto">Mis Pedidos</h1>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card mt-16">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-muted-foreground">
-            © 2025 Pizzeria Imperial. Todos los derechos reservados.
+      <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Tarjeta Puntos */}
+        <div className="md:col-span-1 h-fit bg-white border border-yellow-200 rounded-xl p-6 shadow-lg sticky top-24">
+          <h2 className="text-xl font-bold text-gray-800 flex gap-2">
+            💎 Mis Puntos
+          </h2>
+          <div className="mt-4">
+            <span className="text-5xl font-extrabold text-yellow-600">
+              {user?.points || 0}
+            </span>{" "}
+            <span className="text-sm text-gray-500">Pts</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Gana puntos confirmando la entrega.
           </p>
         </div>
-      </footer>
 
-      {/* Modal de Rastreo */}
+        <section className="md:col-span-2 space-y-6">
+          {userOrders.map((order: Order) => (
+            <div
+              key={order.id}
+              className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4 border-b pb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-bold text-gray-900">
+                        #{order.id.slice(0, 8)}
+                      </span>
+                      {renderStatusBadge(order.status)}
+                      <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-600">
+                        {order.service === "takeaway" ? (
+                          <>
+                            <Store size={12} /> Retiro
+                          </>
+                        ) : (
+                          <>
+                            <Bike size={12} /> Delivery
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {new Date(order.created).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold">
+                      ${order.total.toFixed(2)}
+                    </p>
+                    {order.status === "delivered" ? (
+                      <span className="text-xs text-green-600 font-bold">
+                        +{order.points_earned} pts sumados
+                      </span>
+                    ) : order.points_earned ? (
+                      <span className="text-xs text-gray-400">
+                        +{order.points_earned} pts (al recibir)
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Detalles */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2 text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                    <MapPin className="w-4 h-4 mt-0.5 text-red-500" />
+                    <div>
+                      <p className="font-bold">
+                        {order.service === "takeaway"
+                          ? "Retiro en Sucursal"
+                          : "Dirección"}
+                        :
+                      </p>
+                      <p>
+                        {order.service === "takeaway"
+                          ? "Av. Corrientes 1234"
+                          : order.delivery_address}
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2">
+                    {order.items.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className="flex justify-between text-sm border-b border-gray-50 pb-2"
+                      >
+                        <span>
+                          <span className="font-bold">{item.quantity}x</span>{" "}
+                          {item.name}
+                        </span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Acciones */}
+              <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t">
+                <div>
+                  {order.status === "pending" && (
+                    <button
+                      onClick={() => handleCancelOrder(order)}
+                      className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1 font-medium"
+                    >
+                      <XCircle className="w-4 h-4" /> Cancelar
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  {/* 🔥 RASTREO: Detecta onway o en_camino */}
+                  {(order.status === "onway" ||
+                    order.status === "en_camino") && (
+                    <button
+                      onClick={() => setTrackingOrderId(order.id)}
+                      className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg"
+                    >
+                      📍 Rastrear
+                    </button>
+                  )}
+
+                  {/* 🔥 CONFIRMAR RECEPCIÓN: Suma puntos */}
+                  {(order.status === "onway" ||
+                    order.status === "en_camino" ||
+                    order.status === "pending") && (
+                    <button
+                      onClick={() => handleConfirmDelivery(order)}
+                      className="text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 px-4 py-2 rounded-lg flex items-center gap-1 border border-green-200"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Recibí el pedido
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+      </div>
+
       {trackingOrderId && (
         <OrderTrackingMap
           orderId={trackingOrderId}

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Gift } from "lucide-react"; // Agregamos el icono Gift
+import { X, Gift } from "lucide-react";
 
 interface Pizza {
   id: string;
@@ -12,6 +12,7 @@ interface Pizza {
   stock: number;
   price: number;
   category: string;
+  price_points: number; // Aseguramos que venga este campo
 }
 
 interface CartModalProps {
@@ -21,7 +22,7 @@ interface CartModalProps {
   comment: string;
   onCommentChange: (comment: string) => void;
   onConfirm: () => void;
-  isRedemption?: boolean; // <--- Ya lo tenías, crucial para el flujo
+  isRedemption: boolean; // Sincronizado con PizzaCard
 }
 
 export function CartModal({
@@ -31,16 +32,12 @@ export function CartModal({
   comment,
   onCommentChange,
   onConfirm,
-  isRedemption = false, // Por defecto es false (compra normal)
+  isRedemption,
 }: CartModalProps) {
   if (!isOpen || !pizza) return null;
 
-  // Calcular costo en puntos (1 dólar = 100 puntos, ajusta si es diferente)
-  const POINTS_PER_DOLLAR = 100;
-  // Usamos un factor de descuento para el canje, o el precio base
-  // Si en `pizza-card.tsx` usaste `(pizza.price * 100) / 2`, usa ese factor aquí
-  // Si la pizza cuesta $10 y el canje es 500pts (mitad), usa 50pts por dólar.
-  const pointsCost = Math.floor(pizza.price * 50); // Ejemplo: 50pts por dólar (mitad de costo)
+  // Usamos el precio en puntos directo de la BD
+  const pointsCost = pizza.price_points;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
@@ -48,7 +45,7 @@ export function CartModal({
         {/* Header con cambio de color si es canje */}
         <div
           className={`flex items-center justify-between p-6 border-b ${
-            isRedemption ? "bg-yellow-50" : ""
+            isRedemption ? "bg-yellow-50" : "bg-white"
           }`}
         >
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -73,19 +70,18 @@ export function CartModal({
 
         {/* Contenido */}
         <div className="p-6 space-y-6">
-          {/* Información de la pizza */}
           <div className="space-y-4">
-            {/* ... (Nombre y Descripción) ... */}
+            <h3 className="font-bold text-xl">{pizza.name}</h3>
+            <p className="text-muted-foreground text-sm">{pizza.description}</p>
 
-            <div>
-              <h3 className="font-semibold text-lg text-foreground">
-                {isRedemption ? "Costo del Canje:" : "Precio:"}
+            <div className="mt-4 p-4 rounded-lg bg-gray-50 border">
+              <h3 className="font-semibold text-lg text-foreground mb-1">
+                {isRedemption ? "Costo en Puntos:" : "Precio:"}
               </h3>
 
-              {/* Lógica visual: Dinero vs Puntos */}
               {isRedemption ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-yellow-600">
+                  <span className="text-2xl font-extrabold text-yellow-600">
                     💎 {pointsCost} pts
                   </span>
                   <span className="text-sm text-gray-400 line-through">
@@ -102,38 +98,32 @@ export function CartModal({
 
           {/* Comentario */}
           <div className="space-y-3">
-            <label
-              htmlFor="comment"
-              className="font-semibold text-lg text-foreground"
-            >
-              Comentario:
+            <label htmlFor="comment" className="font-semibold text-foreground">
+              Notas para la cocina:
             </label>
             <Textarea
               id="comment"
               placeholder={
                 isRedemption
-                  ? "Ej: Sin aceitunas (Canje de recompensa)"
-                  : "Ej: Sin aceitunas, extra queso, bien cocida..."
+                  ? "Ej: Es un regalo, enviar servilletas extra..."
+                  : "Ej: Sin aceitunas, extra queso..."
               }
               value={comment}
               onChange={(e) => onCommentChange(e.target.value)}
-              rows={4}
+              rows={3}
               className="resize-none focus:ring-red-500"
             />
-            <p className="text-sm text-muted-foreground">
-              Añade cualquier especificación especial para tu pizza
-            </p>
           </div>
         </div>
 
-        {/* Footer: El botón de confirmación usa onConfirm */}
+        {/* Footer */}
         <div className="flex gap-3 p-6 border-t bg-gray-50">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
           <Button
-            onClick={onConfirm} // <--- Llama a la función del padre
-            className={`flex-1 text-white font-bold transition-colors ${
+            onClick={onConfirm}
+            className={`flex-1 text-white font-bold transition-transform active:scale-95 ${
               isRedemption
                 ? "bg-yellow-500 hover:bg-yellow-600 shadow-md shadow-yellow-200"
                 : "bg-red-600 hover:bg-red-700"

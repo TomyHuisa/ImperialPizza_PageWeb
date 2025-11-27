@@ -3,334 +3,426 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext"; 
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, CreditCard, Banknote, Bike, Store } from "lucide-react";
 
 export default function CartPage() {
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const {
     user,
     cart: cartItems,
     removeFromCart,
     updateCartItem,
-    clearCart,
-    getCartTotal,
-    getCartItemsCount,
     createOrder,
+    validateCartStock,
   } = useAuth();
 
   const [customerInfo, setCustomerInfo] = useState({
     name: user?.username || "",
     phone: user?.phone || "",
-    address: user?.location || "", 
+    address: user?.location || "",
     notes: "",
   });
 
-  useEffect(() => {
-    if (user) {
-        setCustomerInfo(prev => ({
-            ...prev,
-            name: prev.name || user.username || "",
-            phone: prev.phone || user.phone || "",
-            address: prev.address || user.location || ""
-        }));
-    }
-  }, [user]);
-
-  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "tarjeta" | "">("");
+  // Selector de servicio
+  const [serviceType, setServiceType] = useState<"delivery" | "takeaway">(
+    "delivery"
+  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "efectivo" | "tarjeta" | "puntos" | ""
+  >("");
   const [cardInfo, setCardInfo] = useState({
     number: "",
     name: "",
     expiry: "",
     cvv: "",
   });
-  const [showCardForm, setShowCardForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleContinueShopping = () => {
-    router.push("/");
-  };
+  useEffect(() => {
+    if (user) {
+      setCustomerInfo((prev) => ({
+        ...prev,
+        name: prev.name || user.username || "",
+        phone: prev.phone || user.phone || "",
+        address: prev.address || user.location || "",
+      }));
+    }
+  }, [user]);
+
+  // Cálculos
+  const totalMoney = cartItems.reduce(
+    (acc, item) =>
+      acc +
+      (item.pointsCost && item.pointsCost > 0 ? 0 : item.price * item.quantity),
+    0
+  );
+  const totalPointsCost = cartItems.reduce(
+    (acc, item) => acc + (item.pointsCost || 0) * item.quantity,
+    0
+  );
+  const totalPointsEarn = cartItems.reduce(
+    (acc, item) =>
+      acc +
+      (item.pointsCost && item.pointsCost > 0
+        ? 0
+        : Math.floor(item.price) * item.quantity),
+    0
+  );
+
+  const isPureRedemption = totalMoney === 0 && cartItems.length > 0;
+  const canProceed = user ? user.points >= totalPointsCost : true;
+  const isCardComplete =
+    cardInfo.number && cardInfo.name && cardInfo.expiry && cardInfo.cvv;
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
 
-    if (!paymentMethod) {
+    if (
+      !customerInfo.name ||
+      !customerInfo.phone ||
+      (serviceType === "delivery" && !customerInfo.address)
+    ) {
       toast({
         variant: "destructive",
-        title: "❌ Método de pago requerido",
-        description: "Por favor selecciona un método de pago.",
+        title: "Faltan datos",
+        description: "Verifica nombre, teléfono y dirección.",
       });
       return;
     }
-
-    if (paymentMethod === "tarjeta" && !isCardInfoComplete()) {
+    if (!isPureRedemption && !paymentMethod) {
       toast({
         variant: "destructive",
-        title: "❌ Información de tarjeta incompleta",
-        description: "Por favor ingresa todos los datos de tu tarjeta.",
+        title: "Método de pago",
+        description: "Selecciona cómo quieres pagar.",
       });
       return;
     }
-
-    // Validación estricta para asegurar que la dirección no vaya vacía
-    if (!customerInfo.phone || !customerInfo.address || !customerInfo.name) {
+    if (paymentMethod === "tarjeta" && !isCardComplete) {
       toast({
         variant: "destructive",
-        title: "❌ Información incompleta",
-        description: "Por favor completa Nombre, Teléfono y Dirección.",
+        title: "Datos de tarjeta",
+        description: "Completa la información de pago.",
+      });
+      return;
+    }
+    if (!canProceed) {
+      toast({
+        variant: "destructive",
+        title: "Puntos insuficientes",
+        description: "No te alcanzan los puntos.",
       });
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      const total = getCartTotal();
-      
-      // 🔥 Lógica de Puntos: 
-      // Si pagas, ganas puntos (ej. 1 punto por cada $1).
-      // Si el total es 0 (todo canje), no ganas puntos.
-      const pointsEarned = total > 0 ? Math.floor(total) : 0;
-      const currentPoints = user?.points || 0;
-      const newUserPoints = currentPoints + pointsEarned;
+      await validateCartStock();
 
-      const orderData = {
-        ...customerInfo, // Esto contiene 'address', 'notes', etc.
-        payment_method: paymentMethod,
-        userId: user?.id,
-        // Datos para la actualización de puntos en AuthContext
-        pointsEarned: pointsEarned,
-        newUserPoints: newUserPoints
-      };
+      const orderId = await createOrder({
+        customer_name: customerInfo.name,
+        phone: customerInfo.phone,
+        delivery_address:
+          serviceType === "delivery" ? customerInfo.address : "Retiro en Local",
+        customer_notes: customerInfo.notes,
+        payment_method: isPureRedemption ? "puntos" : paymentMethod,
 
-      console.log("Enviando orden:", orderData); // Para depuración
+        // 🔥 CORRECCIÓN: Enviamos la variable correcta al contexto
+        service: serviceType,
 
-      const orderId = await createOrder(orderData);
+        points_spent: totalPointsCost,
+        points_earned: totalPointsEarn,
+      });
 
       if (orderId) {
         toast({
-          title: "✅ Pedido realizado",
-          description: `Pedido #${orderId} creado. Ganaste ${pointsEarned} puntos.`,
-          duration: 4000,
+          title: "✅ Pedido Confirmado",
+          description: `Tu orden #${orderId.slice(0, 8)} está en camino.`,
         });
-
-        setTimeout(() => {
-          router.push("/"); 
-        }, 3000);
-      } else {
-        throw new Error("No se pudo crear el pedido");
+        setTimeout(() => router.push("/orders"), 2000);
       }
-    } catch (error) {
-      console.error("Error en checkout:", error);
+    } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "❌ Error",
-        description: "No se pudo crear el pedido. Revisa tu conexión.",
+        title: "Error",
+        description: error.message,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setCustomerInfo((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleCardInputChange = (field: string, value: string) => {
-    setCardInfo((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleUpdateQuantity = async (
-    pizzaId: string,
-    comment: string,
-    newQuantity: number
-  ) => {
-    updateCartItem(pizzaId, comment, newQuantity);
-  };
-
-  const handleRemoveItem = (pizzaId: string, comment: string) => {
-      removeFromCart(pizzaId, comment);
-  };
-
-  const handlePaymentMethodSelect = (method: "efectivo" | "tarjeta") => {
-    setPaymentMethod(method);
-    setShowCardForm(method === "tarjeta");
-  };
-
-  const handleAddCard = () => {
-    setShowCardForm(true);
-    setPaymentMethod("tarjeta");
-  };
-
-  const isCardInfoComplete = () => {
-    return cardInfo.number && cardInfo.name && cardInfo.expiry && cardInfo.cvv;
-  };
-
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || "";
-    const parts = [];
-    for (let i = 0; i < match.length; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    return parts.length ? parts.join(" ") : value;
-  };
-
-  const formatExpiry = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    if (v.length >= 2) {
-      return v.substring(0, 2) + (v.length > 2 ? "/" + v.substring(2, 4) : "");
-    }
-    return v;
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <Link
-              href="/"
-              className="p-2 rounded-md hover:bg-muted transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground font-serif text-center flex-1">
-              Pizzeria Imperial
-            </h1>
-            <div className="text-lg font-semibold">{getCartItemsCount()} items</div>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center">
+          <Link
+            href="/"
+            className="flex items-center text-gray-600 hover:text-red-600"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" /> Menú
+          </Link>
+          <h1 className="text-xl font-bold ml-auto">Carrito</h1>
         </div>
-      </header>
+      </div>
 
-      {/* Contenido principal */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Carrito de Compras
-          </h1>
-          <p className="text-muted-foreground">
-            Revisa y gestiona tus pizzas antes de realizar el pedido
-          </p>
-        </div>
-
-        {/* Estado del carrito */}
-        <div className="bg-card border border-border rounded-lg p-8 text-center">
+      <div className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
           {cartItems.length === 0 ? (
-            <div className="py-12">
-              <svg className="w-24 h-24 text-muted-foreground mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <h2 className="text-2xl font-bold text-foreground mb-4">Tu carrito está vacío</h2>
-              <button onClick={handleContinueShopping} className="bg-red-600 text-white py-3 px-8 rounded-lg hover:bg-red-700 transition-colors font-medium">
-                Explorar Pizzas
-              </button>
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <p>Carrito vacío</p>
             </div>
           ) : (
-            <div className="text-left">
-              <div className="space-y-4">
-                {cartItems.map((item, index) => (
-                  <div
-                    key={`${item.pizzaId}-${item.comment}-${index}`}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg"
+            cartItems.map((item) => (
+              <div
+                key={`${item.pizzaId}-${item.comment}`}
+                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-center"
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-24 h-24 rounded-md object-cover"
+                />
+                <div className="flex-1 w-full text-center sm:text-left">
+                  <h3 className="font-bold text-lg">{item.name}</h3>
+                  <p className="text-sm text-gray-500">{item.comment}</p>
+                  {(item.pointsCost || 0) > 0 && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold">
+                      💎 Canje: {item.pointsCost} pts
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center border rounded-md bg-gray-50">
+                    <button
+                      onClick={() =>
+                        updateCartItem(
+                          item.pizzaId,
+                          item.comment,
+                          item.quantity - 1
+                        )
+                      }
+                      className="px-3 py-1 hover:bg-gray-200"
+                    >
+                      -
+                    </button>
+                    <span className="px-3 font-medium">{item.quantity}</span>
+                    <button
+                      onClick={() =>
+                        updateCartItem(
+                          item.pizzaId,
+                          item.comment,
+                          item.quantity + 1
+                        )
+                      }
+                      className="px-3 py-1 hover:bg-gray-200"
+                      disabled={
+                        item.maxStock ? item.quantity >= item.maxStock : false
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p className="font-bold text-lg">
+                    {(item.pointsCost || 0) > 0
+                      ? `${item.pointsCost! * item.quantity} pts`
+                      : `$${(item.price * item.quantity).toFixed(2)}`}
+                  </p>
+                  <button
+                    onClick={() => removeFromCart(item.pizzaId, item.comment)}
+                    className="text-xs text-red-500 hover:underline"
                   >
-                    <div className="flex items-center space-x-4">
-                      <img
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-md"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{item.name}</h3>
-                        {item.comment && (
-                          <p className="text-sm text-blue-600 mt-1">
-                            <strong>Nota:</strong> {item.comment}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-2 mt-2">
-                          <button onClick={() => handleUpdateQuantity(item.pizzaId, item.comment, item.quantity - 1)} className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">-</button>
-                          <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
-                          <button onClick={() => handleUpdateQuantity(item.pizzaId, item.comment, item.quantity + 1)} className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">+</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">${(item.price * item.quantity).toFixed(2)}</p>
-                      <button onClick={() => handleRemoveItem(item.pizzaId, item.comment)} className="text-red-600 hover:text-red-700 text-sm mt-2">Eliminar</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Información del cliente */}
-              <div className="mt-8 p-6 bg-muted rounded-lg">
-                <h3 className="text-xl font-bold mb-4 text-foreground">Información de Contacto</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Nombre completo *</label>
-                    <input type="text" placeholder="Tu nombre" value={customerInfo.name} onChange={(e) => handleInputChange("name", e.target.value)} className="w-full p-3 border border-border rounded-md" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Teléfono *</label>
-                    <input type="tel" placeholder="Tu teléfono" value={customerInfo.phone} onChange={(e) => handleInputChange("phone", e.target.value)} className="w-full p-3 border border-border rounded-md" required />
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Dirección de entrega *</label>
-                  <input type="text" placeholder="Dirección completa para la entrega" value={customerInfo.address} onChange={(e) => handleInputChange("address", e.target.value)} className="w-full p-3 border border-border rounded-md" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Notas adicionales</label>
-                  <textarea placeholder="Instrucciones especiales..." value={customerInfo.notes} onChange={(e) => handleInputChange("notes", e.target.value)} className="w-full p-3 border border-border rounded-md h-20 resize-none" />
+                    Eliminar
+                  </button>
                 </div>
               </div>
+            ))
+          )}
 
-              {/* Método de Pago */}
-              <div className="mt-8 p-6 bg-muted rounded-lg">
-                <h3 className="text-xl font-bold mb-4 text-foreground">Método de Pago</h3>
-                {!showCardForm && (
-                  <div onClick={handleAddCard} className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-red-500 mb-6">
-                    <p className="text-lg font-semibold text-gray-600">Agregar Tarjeta</p>
-                  </div>
-                )}
-                {showCardForm && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <input type="text" placeholder="Número" value={cardInfo.number} onChange={(e) => handleCardInputChange("number", formatCardNumber(e.target.value))} className="w-full p-3 border rounded-md" />
-                        <input type="text" placeholder="Nombre" value={cardInfo.name} onChange={(e) => handleCardInputChange("name", e.target.value.toUpperCase())} className="w-full p-3 border rounded-md" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input type="text" placeholder="MM/AA" value={cardInfo.expiry} onChange={(e) => handleCardInputChange("expiry", formatExpiry(e.target.value))} className="w-full p-3 border rounded-md" />
-                        <input type="text" placeholder="CVV" value={cardInfo.cvv} onChange={(e) => handleCardInputChange("cvv", e.target.value.replace(/[^0-9]/g, ""))} className="w-full p-3 border rounded-md" />
-                    </div>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button onClick={() => handlePaymentMethodSelect("efectivo")} className={`p-4 border-2 rounded-lg ${paymentMethod === "efectivo" ? "border-red-600 bg-red-50" : "border-gray-300"}`}>Pagar Efectivo</button>
-                  <button onClick={() => { if (!showCardForm) { toast({ title: "Tarjeta requerida" }); return; } handlePaymentMethodSelect("tarjeta"); }} disabled={!showCardForm || !isCardInfoComplete()} className={`p-4 border-2 rounded-lg ${paymentMethod === "tarjeta" ? "border-green-600 bg-green-50" : "border-gray-300"}`}>Pagar con Tarjeta</button>
-                </div>
-              </div>
+          {cartItems.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
+              <h2 className="text-lg font-bold">📝 Entrega y Datos</h2>
 
-              {/* Resumen */}
-              <div className="mt-6 p-6 bg-muted rounded-lg">
-                <div className="flex justify-between items-center mb-4"><span className="text-foreground">Subtotal:</span><span className="font-semibold">${getCartTotal().toFixed(2)}</span></div>
-                <div className="flex justify-between items-center mb-6 text-lg font-bold"><span className="text-foreground">Total:</span><span className="text-red-600">${getCartTotal().toFixed(2)}</span></div>
-                <button onClick={handleCheckout} disabled={isSubmitting || cartItems.length === 0} className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 font-medium disabled:bg-gray-400">
-                  {isSubmitting ? "Procesando..." : "Realizar Pedido"}
+              {/* Selector de Servicio */}
+              <div className="flex p-1 bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => setServiceType("delivery")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md font-medium transition-all ${
+                    serviceType === "delivery"
+                      ? "bg-white shadow text-red-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  <Bike size={20} /> Delivery
+                </button>
+                <button
+                  onClick={() => setServiceType("takeaway")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md font-medium transition-all ${
+                    serviceType === "takeaway"
+                      ? "bg-white shadow text-red-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  <Store size={20} /> Takeaway
                 </button>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={customerInfo.name}
+                  onChange={(e) =>
+                    setCustomerInfo({ ...customerInfo, name: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                />
+                <input
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={customerInfo.phone}
+                  onChange={(e) =>
+                    setCustomerInfo({ ...customerInfo, phone: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                />
+                {serviceType === "delivery" && (
+                  <input
+                    type="text"
+                    placeholder="Dirección de Entrega"
+                    value={customerInfo.address}
+                    onChange={(e) =>
+                      setCustomerInfo({
+                        ...customerInfo,
+                        address: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded md:col-span-2"
+                  />
+                )}
+                <textarea
+                  rows={2}
+                  placeholder="Notas adicionales..."
+                  value={customerInfo.notes}
+                  onChange={(e) =>
+                    setCustomerInfo({ ...customerInfo, notes: e.target.value })
+                  }
+                  className="w-full p-2 border rounded md:col-span-2"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Resumen */}
+        <div className="lg:col-span-1">
+          {cartItems.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-100 sticky top-24">
+              <h2 className="text-xl font-bold mb-6">Resumen</h2>
+              <div className="space-y-3 text-sm text-gray-600 mb-6">
+                <div className="flex justify-between">
+                  <span>Total Efectivo</span>
+                  <span>${totalMoney.toFixed(2)}</span>
+                </div>
+                {totalPointsCost > 0 && (
+                  <div className="flex justify-between text-yellow-600 font-bold">
+                    <span>Total Canje</span>
+                    <span>{totalPointsCost} pts</span>
+                  </div>
+                )}
+              </div>
+
+              {isPureRedemption ? (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6 text-center">
+                  <p className="font-bold text-yellow-800">
+                    ✨ Canjeado con Puntos
+                  </p>
+                  <p className="text-sm text-yellow-600">No requiere pago.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 mb-6">
+                  <h3 className="font-bold text-sm text-gray-700">Pago</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setPaymentMethod("efectivo")}
+                      className={`p-3 border rounded-lg flex flex-col items-center justify-center gap-2 ${
+                        paymentMethod === "efectivo"
+                          ? "bg-red-50 border-red-500 text-red-700"
+                          : ""
+                      }`}
+                    >
+                      <Banknote /> <span className="text-sm">Efectivo</span>
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod("tarjeta")}
+                      className={`p-3 border rounded-lg flex flex-col items-center justify-center gap-2 ${
+                        paymentMethod === "tarjeta"
+                          ? "bg-blue-50 border-blue-500 text-blue-700"
+                          : ""
+                      }`}
+                    >
+                      <CreditCard /> <span className="text-sm">Tarjeta</span>
+                    </button>
+                  </div>
+                  {paymentMethod === "tarjeta" && (
+                    <div className="bg-gray-50 p-4 rounded border space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Nro Tarjeta"
+                        value={cardInfo.number}
+                        onChange={(e) =>
+                          setCardInfo({ ...cardInfo, number: e.target.value })
+                        }
+                        className="w-full p-2 border rounded text-sm"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="MM/AA"
+                          value={cardInfo.expiry}
+                          onChange={(e) =>
+                            setCardInfo({ ...cardInfo, expiry: e.target.value })
+                          }
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                        <input
+                          type="text"
+                          placeholder="CVV"
+                          value={cardInfo.cvv}
+                          onChange={(e) =>
+                            setCardInfo({ ...cardInfo, cvv: e.target.value })
+                          }
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nombre"
+                        value={cardInfo.name}
+                        onChange={(e) =>
+                          setCardInfo({ ...cardInfo, name: e.target.value })
+                        }
+                        className="w-full p-2 border rounded text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleCheckout}
+                disabled={
+                  isSubmitting ||
+                  (!isPureRedemption && !paymentMethod) ||
+                  !canProceed
+                }
+                className="w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-300 shadow-md"
+              >
+                {isSubmitting ? "Procesando..." : "CONFIRMAR PEDIDO"}
+              </button>
             </div>
           )}
         </div>
