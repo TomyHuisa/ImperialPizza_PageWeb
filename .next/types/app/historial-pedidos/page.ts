@@ -1,4 +1,4 @@
-// File: /home/etec/Documentos/ImperialPizza_PageWeb/app/historial-pedidos/page.tsx
+// File: C:\Users\TMons\Documents\PW\ImperialPizza_PageWeb\app\historial-pedidos\page.tsx
 import * as entry from '../../../../app/historial-pedidos/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
