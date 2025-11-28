@@ -35,8 +35,8 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Obtenemos el precio en puntos directo de la BD
-  const pointsCost = pizza.price_points;
+  // Obtenemos el precio en puntos directo de la BD - asegurando que sea número
+  const pointsCost = Number(pizza.price_points) || 0;
   const isAvailable = pizza.stock > 0;
 
   // Manejador del intento de canje
@@ -49,17 +49,20 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
       return;
     }
 
-    if (user.points >= pointsCost) {
+    // Validación más robusta
+    const userPoints = Number(user.points) || 0;
+    const requiredPoints = Number(pointsCost) || 0;
+
+    if (userPoints >= requiredPoints) {
       // ✅ Tiene puntos -> Abre el modal en modo canje
       onAddToCart(pizza, true);
     } else {
       // ❌ No tiene puntos -> Notificación tipo Push
+      const pointsNeeded = requiredPoints - userPoints;
       toast({
         variant: "destructive",
         title: "💎 Puntos Insuficientes",
-        description: `Te faltan ${
-          pointsCost - user.points
-        } puntos. ¡Sigue comprando para sumar más!`,
+        description: `Te faltan ${pointsNeeded} puntos. ¡Sigue comprando para sumar más!`,
         duration: 4000,
       });
     }
