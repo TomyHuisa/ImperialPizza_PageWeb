@@ -25,7 +25,8 @@ interface CartItem {
   comment: string;
   maxStock?: number;
   pointsCost?: number;
-  isRedemption?: boolean; // Nueva propiedad para identificar canjes
+  isRedemption?: boolean;
+  pointsEarned?: number; // Puntos que este item generará
 }
 
 interface PizzaToAdd {
@@ -56,14 +57,15 @@ interface AuthContextType {
     pizza: PizzaToAdd,
     comment: string,
     isRedemption?: boolean
-  ) => void;
-  removeFromCart: (pizzaId: string, comment: string) => void;
-  updateCartItem: (pizzaId: string, comment: string, quantity: number) => void;
+  ) => Promise<void>;
+  removeFromCart: (pizzaId: string, comment: string) => Promise<void>;
+  updateCartItem: (pizzaId: string, comment: string, quantity: number) => Promise<void>;
   clearCart: () => void;
   getCartTotal: () => number;
   getCartItemsCount: () => number;
   validateCartStock: () => Promise<void>;
-  getPointsSpent: () => number; // Nueva función para calcular puntos gastados
+  getPointsSpent: () => number;
+  getPointsEarned: () => number;
 
   createOrder: (orderData: any) => Promise<string>;
   userOrders: any[];
@@ -105,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     username: userData.username || "",
     phone: userData.phone || "",
     email: userData.email,
-    points: Number(userData.points) || 0, // Aseguramos que sea número
+    points: Number(userData.points) || 0,
     location: userData.location || "",
     created: userData.created,
     updated: userData.updated,
@@ -156,6 +158,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("pizzaImperial_cart", JSON.stringify(cart));
     }
   }, [cart]);
+
+  // 🔥 ACTUALIZAR PUNTOS DEL USUARIO
+  const updateUserPoints = async (newPoints: number) => {
+    if (!user) return;
+    
+    try {
+      await pb.collection("users").update(user.id, { points: newPoints });
+      setUser(prev => prev ? { ...prev, points: newPoints } : null);
+    } catch (error) {
+      console.error("Error actualizando puntos:", error);
+      throw error;
+    }
+  };
 
   const login = async (username: string, password: string) => {
     setLoading(true);
@@ -208,14 +223,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => (prev ? { ...prev, ...getUserInfo(updated) } : null));
   };
 
-  // --- CARRITO MEJORADO ---
-  const addToCart = (
+  // --- CARRITO MEJORADO CON PUNTOS INMEDIATOS ---
+  const addToCart = async (
     pizza: PizzaToAdd,
     comment: string,
     isRedemption: boolean = false
   ) => {
+    // Calcular puntos que genera este item (solo si no es canje)
+    const pointsEarned = isRedemption ? 0 : Math.floor(pizza.price);
+    const pointsCostValue = isRedemption ? Number(pizza.price_points) || 0 : 0;
+
+    // 🔥 SUMAR PUNTOS INMEDIATAMENTE (solo para compras normales)
+    if (!isRedemption && user) {
+      const newPoints = (user.points || 0) + pointsEarned;
+      await updateUserPoints(newPoints);
+    }
+
     setCart((prev) => {
-      // Clave única incluye si es canje o no para no mezclarlos
       const itemIndex = prev.findIndex(
         (item) =>
           item.pizzaId === pizza.id &&
@@ -223,12 +247,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           item.isRedemption === isRedemption
       );
 
-      // Costo en puntos: Si es canje, usa el valor de la BD. Si no, 0.
-      const pointsCostValue = isRedemption ? Number(pizza.price_points) || 0 : 0;
-
       if (itemIndex !== -1) {
         const newCart = [...prev];
         newCart[itemIndex].quantity += 1;
+        
+        // 🔥 ACTUALIZAR PUNTOS ACUMULADOS
+        if (!isRedemption) {
+          newCart[itemIndex].pointsEarned = (newCart[itemIndex].pointsEarned || 0) + pointsEarned;
+        }
+        
         return newCart;
       } else {
         return [
@@ -241,34 +268,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             image: pizza.image,
             comment,
             pointsCost: pointsCostValue,
-            isRedemption: isRedemption, // Marcamos explícitamente si es canje
+            isRedemption: isRedemption,
+            pointsEarned: pointsEarned,
           },
         ];
       }
     });
   };
 
-  const removeFromCart = (pizzaId: string, comment: string) => {
+  const removeFromCart = async (pizzaId: string, comment: string) => {
+    const itemToRemove = cart.find(
+      item => item.pizzaId === pizzaId && item.comment === comment
+    );
+
     setCart((prev) =>
       prev.filter(
         (item) => !(item.pizzaId === pizzaId && item.comment === comment)
       )
     );
+
+    // 🔥 RESTAR PUNTOS SI SE ELIMINA UN ITEM (solo compras normales)
+    if (itemToRemove && !itemToRemove.isRedemption && itemToRemove.pointsEarned && user) {
+      const newPoints = Math.max(0, (user.points || 0) - itemToRemove.pointsEarned);
+      await updateUserPoints(newPoints);
+    }
   };
 
-  const updateCartItem = (
+  const updateCartItem = async (
     pizzaId: string,
     comment: string,
     quantity: number
   ) => {
+    const oldItem = cart.find(
+      item => item.pizzaId === pizzaId && item.comment === comment
+    );
+
+    if (!oldItem) return;
+
     if (quantity <= 0) {
-      removeFromCart(pizzaId, comment);
+      await removeFromCart(pizzaId, comment);
       return;
     }
+
+    const quantityDifference = quantity - oldItem.quantity;
+    
+    // 🔥 AJUSTAR PUNTOS POR CAMBIO DE CANTIDAD (solo compras normales)
+    if (!oldItem.isRedemption && quantityDifference !== 0 && user) {
+      const pointsPerUnit = Math.floor(oldItem.price);
+      const pointsDifference = pointsPerUnit * quantityDifference;
+      const newPoints = Math.max(0, (user.points || 0) + pointsDifference);
+      await updateUserPoints(newPoints);
+    }
+
     setCart((prev) =>
       prev.map((item) =>
         item.pizzaId === pizzaId && item.comment === comment
-          ? { ...item, quantity }
+          ? { 
+              ...item, 
+              quantity,
+              pointsEarned: item.isRedemption ? 0 : Math.floor(item.price) * quantity
+            }
           : item
       )
     );
@@ -280,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     cart.reduce(
       (total, item) =>
         total +
-        (item.isRedemption ? 0 : item.price * item.quantity), // Solo suma precio si NO es canje
+        (item.isRedemption ? 0 : item.price * item.quantity),
       0
     );
 
@@ -288,6 +347,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     cart.reduce(
       (total, item) =>
         total + (item.isRedemption ? (item.pointsCost || 0) * item.quantity : 0),
+      0
+    );
+
+  const getPointsEarned = () =>
+    cart.reduce(
+      (total, item) =>
+        total + (item.isRedemption ? 0 : (item.pointsEarned || 0)),
       0
     );
 
@@ -310,7 +376,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCart(updatedCart);
   };
 
-  // --- CREAR ORDEN (MEJORADO) ---
+  // --- CREAR ORDEN (SIMPLIFICADO) ---
   const createOrder = async (orderData: any): Promise<string> => {
     if (cart.length === 0) throw new Error("Carrito vacío");
 
@@ -324,10 +390,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const totalPointsSpent = getPointsSpent();
 
-      // 2. Si hubo canje de puntos, descontarlos AHORA del usuario
+      // 2. Si hubo canje de puntos, descontarlos del usuario
       if (totalPointsSpent > 0 && user) {
         const newPoints = Math.max(0, user.points - totalPointsSpent);
-        await pb.collection("users").update(user.id, { points: newPoints });
+        await updateUserPoints(newPoints);
       }
 
       // 3. Preparar datos para PocketBase
@@ -341,7 +407,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone: orderData.phone,
         payment_method: orderData.payment_method,
         service: orderData.service,
-        points: orderData.points_earned || 0,
+        points: getPointsEarned(), // Puntos ya sumados inmediatamente
         points_spent: totalPointsSpent,
       };
 
@@ -359,8 +425,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
-      // 5. Refrescar usuario para ver el descuento de puntos si hubo canje
-      await refreshUser();
+      // 5. Los puntos ya están sumados, solo limpiamos carrito
       clearCart();
       return order.id;
     } catch (error: any) {
@@ -384,6 +449,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getCartItemsCount,
     validateCartStock,
     getPointsSpent,
+    getPointsEarned,
     createOrder,
     userOrders,
     fetchUserOrders,

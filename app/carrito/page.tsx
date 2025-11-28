@@ -142,7 +142,7 @@ export default function CartPage() {
           title: "✅ Pedido Confirmado",
           description: `Tu orden #${orderId.slice(0, 8)} está en camino.`,
         });
-        setTimeout(() => router.push("/orders"), 2000);
+        setTimeout(() => router.push("/historial-pedidos"), 2000);
       }
     } catch (error: any) {
       toast({

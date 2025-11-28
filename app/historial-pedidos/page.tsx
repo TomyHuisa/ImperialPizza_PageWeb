@@ -11,7 +11,6 @@ import {
   XCircle,
   Bike,
   Store,
-  CheckCircle,
 } from "lucide-react";
 import PocketBaseService from "@/lib/pocketbase";
 
@@ -29,6 +28,7 @@ interface OrderItem {
   image: string;
   isRedemption?: boolean;
   pointsCost?: number;
+  pointsEarned?: number;
 }
 
 interface Order {
@@ -57,12 +57,32 @@ export default function OrderHistoryPage() {
     }
   }, [user?.id]);
 
-  // CANCELAR PEDIDO
+  // CANCELAR PEDIDO - RESTAR PUNTOS
   const handleCancelOrder = async (order: Order) => {
-    if (!confirm("¿Cancelar pedido?")) return;
+    if (!confirm("¿Cancelar pedido? Se restarán los puntos ganados por este pedido.")) return;
+    
     try {
       const pb = PocketBaseService.getInstance();
       await pb.collection("orders").update(order.id, { status: "cancelled" });
+
+      // 🔥 RESTAR PUNTOS AL CANCELAR (solo puntos ganados por compras normales)
+      if (user && order.points_earned && order.points_earned > 0) {
+        const currentUser = await pb.collection("users").getOne(user.id);
+        const currentPoints = Number(currentUser.points) || 0;
+        const newPoints = Math.max(0, currentPoints - order.points_earned);
+
+        await pb.collection("users").update(user.id, { points: newPoints });
+
+        toast({
+          title: "Pedido Cancelado",
+          description: `Se restaron ${order.points_earned} puntos. Stock restaurado.`,
+        });
+      } else {
+        toast({ 
+          title: "Pedido Cancelado", 
+          description: "Stock restaurado." 
+        });
+      }
 
       // Devolver Stock
       for (const item of order.items) {
@@ -78,8 +98,8 @@ export default function OrderHistoryPage() {
         }
       }
 
-      toast({ title: "Pedido Cancelado", description: "Stock restaurado." });
       if (user) await fetchUserOrders(user.id);
+      await refreshUser();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -88,56 +108,6 @@ export default function OrderHistoryPage() {
       });
     }
   };
-
-  // 🔥 DETECTAR Y SUMAR PUNTOS AUTOMÁTICAMENTE PARA ÓRDENES ENTREGADAS
-  useEffect(() => {
-    const processDeliveredOrders = async () => {
-      if (!user || !userOrders.length) return;
-
-      const pb = PocketBaseService.getInstance();
-      let pointsAdded = false;
-
-      for (const order of userOrders) {
-        // Solo procesar órdenes entregadas que no hayan tenido puntos sumados
-        if (order.status === "delivered" && order.points_earned && order.points_earned > 0) {
-          
-          // Verificar si la orden tiene items de canje (no debería sumar puntos por estos)
-          const hasRedemptionItems = order.items.some(item => 
-            item.isRedemption || (item.pointsCost && item.pointsCost > 0)
-          );
-
-          // 🔥 SOLO SUMAR PUNTOS SI:
-          // 1. No tiene items de canje (compras con dinero normal)
-          // 2. Los puntos no han sido sumados previamente
-          if (!hasRedemptionItems) {
-            try {
-              const currentUser = await pb.collection("users").getOne(user.id);
-              const currentPoints = Number(currentUser.points) || 0;
-              const newPoints = currentPoints + order.points_earned;
-
-              await pb.collection("users").update(user.id, { points: newPoints });
-              pointsAdded = true;
-
-              console.log(`✅ Puntos sumados automáticamente: +${order.points_earned} pts para orden ${order.id}`);
-            } catch (error) {
-              console.error("Error sumando puntos automáticamente:", error);
-            }
-          }
-        }
-      }
-
-      if (pointsAdded) {
-        await refreshUser();
-        toast({
-          title: "¡Puntos Actualizados! 🎉",
-          description: "Se han sumado los puntos de tus pedidos entregados.",
-          className: "bg-green-50 border-green-200",
-        });
-      }
-    };
-
-    processDeliveredOrders();
-  }, [userOrders, user?.id]);
 
   const renderStatusBadge = (status: string) => {
     const labels: any = {
@@ -175,7 +145,7 @@ export default function OrderHistoryPage() {
       item.isRedemption || (item.pointsCost && item.pointsCost > 0)
     );
     
-    if (hasRedemption) return 0; // No gana puntos por canjes
+    if (hasRedemption) return 0;
     return order.points_earned || 0;
   };
 
@@ -206,7 +176,7 @@ export default function OrderHistoryPage() {
             <span className="text-sm text-gray-500">Pts</span>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            Los puntos se suman automáticamente cuando tus pedidos son entregados.
+            Los puntos se suman al agregar productos al carrito y se restan si cancelas.
           </p>
         </div>
 
@@ -251,18 +221,21 @@ export default function OrderHistoryPage() {
                         ${order.total.toFixed(2)}
                       </p>
                       
-                      {/* 🔥 MOSTRAR PUNTOS SEGÚN TIPO DE COMPRA */}
+                      {/* 🔥 MOSTRAR PUNTOS SEGÚN TIPO DE COMPRA Y ESTADO */}
                       {hasRedemption ? (
                         <span className="text-xs text-yellow-600 font-bold">
                           Canje con puntos
                         </span>
-                      ) : order.status === "delivered" && earnedPoints > 0 ? (
-                        <span className="text-xs text-green-600 font-bold">
-                          +{earnedPoints} pts sumados
-                        </span>
                       ) : earnedPoints > 0 ? (
-                        <span className="text-xs text-gray-400">
-                          +{earnedPoints} pts (al entregar)
+                        <span className={`text-xs font-bold ${
+                          order.status === "cancelled" 
+                            ? "text-red-600" 
+                            : "text-green-600"
+                        }`}>
+                          {order.status === "cancelled" 
+                            ? `-${earnedPoints} pts (cancelado)`
+                            : `+${earnedPoints} pts`
+                          }
                         </span>
                       ) : null}
                     </div>
@@ -287,7 +260,7 @@ export default function OrderHistoryPage() {
                       </div>
                     </div>
                     
-                    {/* 🔥 INDICAR SI HAY CANJES EN LOS ITEMS */}
+                    {/* ITEMS CON INDICACIÓN DE CANJES */}
                     <ul className="space-y-2">
                       {order.items.map((item, idx) => (
                         <li
@@ -321,6 +294,7 @@ export default function OrderHistoryPage() {
                 {/* Acciones */}
                 <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-t">
                   <div>
+                    {/* SOLO PERMITIR CANCELAR PEDIDOS PENDIENTES O CONFIRMADOS */}
                     {(order.status === "pending" || order.status === "confirmed") && (
                       <button
                         onClick={() => handleCancelOrder(order)}
@@ -341,7 +315,6 @@ export default function OrderHistoryPage() {
                         📍 Rastrear
                       </button>
                     )}
-
                   </div>
                 </div>
               </div>

@@ -38,6 +38,7 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
   // Obtenemos el precio en puntos directo de la BD - asegurando que sea número
   const pointsCost = Number(pizza.price_points) || 0;
   const isAvailable = pizza.stock > 0;
+  const pointsToEarn = Math.floor(pizza.price); // Puntos que ganará al comprar
 
   // Manejador del intento de canje
   const handleRedeemAttempt = () => {
@@ -123,8 +124,9 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
             {isAvailable && (
               <p className="text-xs text-gray-500 mb-1">Stock: {pizza.stock}</p>
             )}
+            {/* 🔥 INDICAR QUE GANARÁS PUNTOS INMEDIATAMENTE */}
             <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-              Gana +{Math.floor(pizza.price)} pts
+              Gana +{pointsToEarn} pts al agregar
             </p>
           </div>
         </div>
@@ -148,6 +150,7 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
             className="w-full py-2 text-sm font-bold border-2 bg-white text-yellow-600 border-yellow-400 hover:bg-yellow-50"
             variant="outline"
           >
+            {/* 🔥 CLARAMENTE INDICA CUÁNTOS PUNTOS GASTARÁS */}
             Canjear por {pointsCost} pts
           </Button>
         )}
