@@ -1,6 +1,5 @@
 "use client";
 
-// 🔥 IMPORTAR useRef
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +11,7 @@ import PocketBaseService from "@/lib/pocketbase";
 import { CartModal } from "@/components/cart-modal";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Importación dinámica... (sin cambios)
+// Importación dinámica
 const OrderTrackingMap = dynamic(
   () => import("@/components/OrderTrackingMap"),
   {
@@ -28,6 +27,7 @@ const OrderTrackingMap = dynamic(
   }
 );
 
+// Interfaz Pizza completa con todos los campos
 interface Pizza {
   id: string;
   name: string;
@@ -36,9 +36,11 @@ interface Pizza {
   stock: number;
   price: number;
   category: string;
+  popular: boolean;
+  price_points: number;
 }
 
-// FUNCIÓN DE NORMALIZACIÓN DE CADENAS (sin cambios)
+// Función de normalización de cadenas
 const normalizeString = (str: string) => {
   if (!str) return "";
   return str
@@ -46,9 +48,6 @@ const normalizeString = (str: string) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 };
-
-// Constante de Puntos (sin cambios)
-const POINTS_PER_DOLLAR_REDEEM = 50;
 
 export default function Home() {
   const { toast } = useToast();
@@ -64,16 +63,14 @@ export default function Home() {
   const [cartComment, setCartComment] = useState("");
   const [isRedemptionMode, setIsRedemptionMode] = useState(false);
 
-  // 🔥 NUEVA REFERENCIA PARA EVITAR DOBLE LLAMADA EN STRICT MODE
+  // Referencia para evitar doble llamada en Strict Mode
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // 🔥 FIX: Si ya se ha ejecutado la lógica de fetch, salimos.
     if (hasFetchedRef.current) {
       return;
     }
 
-    // Marcamos la bandera como true ANTES de la llamada asíncrona.
     hasFetchedRef.current = true;
 
     const loadAllPizzas = async () => {
@@ -85,7 +82,7 @@ export default function Home() {
           sort: "-popular,name",
         });
 
-        // Mapeamos los datos para obtener la URL de la imagen
+        // Mapear correctamente todos los campos incluyendo price_points y popular
         const pizzasData: Pizza[] = records.map((record: any) => ({
           id: record.id,
           name: record.name,
@@ -96,11 +93,18 @@ export default function Home() {
           image: record.image
             ? pb.files.getUrl(record, record.image)
             : "/placeholder.svg",
+          popular: record.popular || false,
+          price_points: record.price_points || 0,
         }));
+
+        // Debug: Verificar que los datos lleguen correctamente
+        console.log("Pizzas cargadas desde PocketBase:", pizzasData);
+        pizzasData.forEach(pizza => {
+          console.log(`${pizza.name}: $${pizza.price}, ${pizza.price_points} pts, popular: ${pizza.popular}`);
+        });
 
         setAllPizzas(pizzasData);
       } catch (error: any) {
-        // En este punto, si PocketBase auto-cancela, el error.message es 'The request was autocancelled.'
         console.error("Error al cargar pizzas:", error);
 
         let description =
@@ -114,7 +118,6 @@ export default function Home() {
             "Acceso denegado. Asegúrate de que los permisos de la colección 'pizzas' estén configurados para 'Anyone'.";
         }
 
-        // No mostramos el toast si el error es la autocancelación
         if (error.message !== "The request was autocancelled.") {
           toast({
             variant: "destructive",
@@ -129,8 +132,6 @@ export default function Home() {
 
     loadAllPizzas();
   }, [toast]);
-
-  // ... (El resto del código es el mismo) ...
 
   const filteredPizzas = allPizzas.filter(
     (pizza) =>
@@ -151,7 +152,8 @@ export default function Home() {
     }
 
     if (isRedemption && user) {
-      const pointsCost = Math.floor(pizza.price * POINTS_PER_DOLLAR_REDEEM);
+      // Usar price_points directo de la BD
+      const pointsCost = pizza.price_points || 0;
       if (user.points < pointsCost) {
         toast({
           variant: "destructive",
@@ -176,9 +178,9 @@ export default function Home() {
         setIsCartModalOpen(false);
         return;
       }
-      const pointsCost = Math.floor(
-        selectedPizza.price * POINTS_PER_DOLLAR_REDEEM
-      );
+      
+      // Usar price_points directo de la BD
+      const pointsCost = selectedPizza.price_points || 0;
 
       try {
         const pb = PocketBaseService.getInstance();
@@ -192,8 +194,10 @@ export default function Home() {
             name: selectedPizza.name,
             price: 0.0,
             image: selectedPizza.image,
+            price_points: pointsCost,
           },
-          `[CANJE PUNTOS: -${pointsCost}pts] ${cartComment}`
+          `[CANJE PUNTOS: -${pointsCost}pts] ${cartComment}`,
+          true
         );
 
         await refreshUser();
@@ -218,8 +222,10 @@ export default function Home() {
           name: selectedPizza.name,
           price: selectedPizza.price,
           image: selectedPizza.image,
+          price_points: selectedPizza.price_points,
         },
-        cartComment
+        cartComment,
+        false
       );
 
       toast({
@@ -283,8 +289,7 @@ export default function Home() {
               Menú no disponible
             </h3>
             <p className="text-muted-foreground mb-6">
-              Lo sentimos, no hay pizzas disponibles en este momento. Vuelve
-              pronto.
+              Lo sentimos, no hay pizzas disponibles en este momento. Vuelve pronto.
             </p>
           </div>
         ) : (
@@ -303,7 +308,6 @@ export default function Home() {
               <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground">
                   No hay pizzas disponibles en la categoría "{selectedCategory}"
-                  .
                 </p>
               </div>
             )}
@@ -318,8 +322,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
           <div className="w-full md:w-1/2">
             <p className="text-lg mb-4 text-muted-foreground">
-              Ingresa el ID de tu pedido para ver su estado y ubicación en
-              tiempo real.
+              Ingresa el ID de tu pedido para ver su estado y ubicación en tiempo real.
             </p>
             <div className="flex gap-2">
               <input

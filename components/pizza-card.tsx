@@ -35,7 +35,7 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Obtenemos el precio en puntos directo de la BD - asegurando que sea número
+  // Obtenemos el precio en puntos directo de la BD
   const pointsCost = Number(pizza.price_points) || 0;
   const isAvailable = pizza.stock > 0;
   const pointsToEarn = Math.floor(pizza.price); // Puntos que ganará al comprar
@@ -77,10 +77,11 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
 
   return (
     <Card className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-all border-2 hover:border-red-100 relative group">
-      {/* Etiqueta de puntos siempre visible si hay usuario */}
-      {user && isAvailable && (
-        <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-          💎 {pointsCost} pts
+      {/* Etiqueta de puntos - SIEMPRE visible si tiene stock */}
+      {isAvailable && (
+        <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm border border-yellow-600 flex items-center gap-1">
+          <span className="text-yellow-700">💎</span>
+          <span>{pointsCost} pts</span>
         </div>
       )}
 
@@ -117,14 +118,20 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
 
       <CardContent className="flex-grow">
         <div className="flex justify-between items-end">
-          <p className="text-3xl font-bold text-gray-800">
-            ${pizza.price.toFixed(2)}
-          </p>
+          <div>
+            <p className="text-3xl font-bold text-gray-800">
+              ${pizza.price.toFixed(2)}
+            </p>
+            {/* Información de equivalencia en puntos - SIEMPRE visible */}
+            <p className="text-sm text-yellow-700 font-medium mt-1">
+              Equivale a {pointsCost} puntos
+            </p>
+          </div>
           <div className="text-right">
             {isAvailable && (
               <p className="text-xs text-gray-500 mb-1">Stock: {pizza.stock}</p>
             )}
-            {/* 🔥 INDICAR QUE GANARÁS PUNTOS INMEDIATAMENTE */}
+            {/* 🔥 INDICAR QUE GANARÁS PUNTOS INMEDIATAMENTE - SIEMPRE visible */}
             <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
               Gana +{pointsToEarn} pts al agregar
             </p>
@@ -137,13 +144,13 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
         <Button
           onClick={handleAddToCart}
           disabled={!isAvailable}
-          className="w-full py-6 text-lg shadow-sm"
+          className="w-full py-6 text-lg shadow-sm hover:shadow-md transition-shadow"
           variant={isAvailable ? "default" : "secondary"}
         >
           {isAvailable ? "Agregar al Carrito" : "Agotado"}
         </Button>
 
-        {/* Botón Canje SIEMPRE VISIBLE si hay usuario y stock */}
+        {/* Botón Canje - SIEMPRE VISIBLE si hay usuario y stock (incluso si cuesta 0 puntos) */}
         {user && isAvailable && (
           <Button
             onClick={handleRedeemAttempt}
@@ -153,6 +160,13 @@ export function PizzaCard({ pizza, onAddToCart }: PizzaCardProps) {
             {/* 🔥 CLARAMENTE INDICA CUÁNTOS PUNTOS GASTARÁS */}
             Canjear por {pointsCost} pts
           </Button>
+        )}
+
+        {/* Mensaje informativo si no hay usuario */}
+        {!user && isAvailable && (
+          <div className="text-center text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+            ⚡ Inicia sesión para canjear esta pizza con puntos
+          </div>
         )}
       </CardFooter>
     </Card>

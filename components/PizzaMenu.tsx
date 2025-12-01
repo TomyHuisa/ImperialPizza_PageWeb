@@ -14,7 +14,8 @@ interface PocketBasePizzaRecord {
   price: number;
   image: string;
   stock: number;
-  popular: boolean;
+  popular: boolean; // 🔥 AGREGAR popular
+  price_points: number; // 🔥 AGREGAR price_points
   collectionId: string;
   collectionName: string;
   created: string;
@@ -22,7 +23,7 @@ interface PocketBasePizzaRecord {
   expand?: any;
 }
 
-// Tu interfaz Pizza existente
+// 🔥 ACTUALIZAR la interfaz Pizza para incluir price_points y popular
 interface Pizza {
   id: string;
   name: string;
@@ -32,6 +33,7 @@ interface Pizza {
   price: number;
   category: string;
   popular: boolean;
+  price_points: number; // 🔥 AGREGAR ESTE CAMPO
 }
 
 export function PizzaMenu() {
@@ -41,11 +43,9 @@ export function PizzaMenu() {
 
   // 🔥 El useEffect ahora solo depende de selectedCategory
   useEffect(() => {
-    // 🔥 Antes: Se usaba AbortController aquí
     loadPizzas(selectedCategory);
   }, [selectedCategory]);
 
-  // 🔥 El 'signal' fue removido de los argumentos
   const loadPizzas = async (category: string) => {
     setLoading(true);
     try {
@@ -62,10 +62,9 @@ export function PizzaMenu() {
         .getFullList<PocketBasePizzaRecord>({
           filter,
           sort: "-popular,name",
-          // 🔥 Antes: fetch: { signal }, // Esta era la línea problemática
         });
 
-      // Mapear los datos de PocketBase a tu interfaz
+      // 🔥 MAPEAR CORRECTAMENTE TODOS LOS CAMPOS
       const pizzasData: Pizza[] = records.map(
         (record: PocketBasePizzaRecord) => ({
           id: record.id,
@@ -77,14 +76,14 @@ export function PizzaMenu() {
             ? pb.files.getUrl(record, record.image)
             : "/placeholder.svg",
           stock: record.stock,
-          popular: record.popular,
+          popular: record.popular || false, // 🔥 AGREGAR popular
+          price_points: record.price_points || 0, // 🔥 AGREGAR price_points
         })
       );
 
       setPizzas(pizzasData);
-      console.log("Pizzas cargadas:", pizzasData);
+      console.log("Pizzas cargadas en PizzaMenu:", pizzasData);
     } catch (error: any) {
-      // Ahora solo manejamos errores de conexión/PocketBase
       console.error("Error loading pizzas:", error);
     } finally {
       setLoading(false);
@@ -111,7 +110,14 @@ export function PizzaMenu() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {pizzas.map((pizza) => (
-          <PizzaCard key={pizza.id} pizza={pizza} />
+          <PizzaCard 
+            key={pizza.id} 
+            pizza={pizza} 
+            onAddToCart={(pizza, isRedemption) => {
+              // Manejo temporal - deberías implementar tu propia lógica aquí
+              console.log("Agregar al carrito:", pizza.name, "Redención:", isRedemption);
+            }} 
+          />
         ))}
       </div>
 
