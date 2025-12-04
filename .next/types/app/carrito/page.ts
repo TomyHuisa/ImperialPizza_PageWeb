@@ -1,4 +1,4 @@
-// File: C:\Users\TMons\Documents\PW\ImperialPizza_PageWeb\app\carrito\page.tsx
+// File: /home/etec/Documentos/ImperialPizza_PageWeb/app/carrito/page.tsx
 import * as entry from '../../../../app/carrito/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

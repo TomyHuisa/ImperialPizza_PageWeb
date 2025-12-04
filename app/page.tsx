@@ -257,12 +257,6 @@ export default function Home() {
           <p className="text-xl mb-8">
             Hecha con ingredientes frescos y pasión italiana.
           </p>
-          <Link
-            href="#menu"
-            className="bg-white text-red-600 font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:bg-gray-100 transition-colors"
-          >
-            Ver Menú
-          </Link>
         </div>
       </section>
 

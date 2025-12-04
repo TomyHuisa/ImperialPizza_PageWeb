@@ -1,5 +1,5 @@
 {
-  "/carrito/page": "app/carrito/page.js",
-  "/historial-pedidos/page": "app/historial-pedidos/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/carrito/page": "app/carrito/page.js"
 }
