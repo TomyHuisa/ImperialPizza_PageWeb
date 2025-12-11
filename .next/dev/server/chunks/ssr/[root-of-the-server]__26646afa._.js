@@ -614,7 +614,7 @@ const pizzas = [
             "Parmesan",
             "Fontina"
         ],
-        stock: 15,
+        stock: 50,
         popular: true
     },
     {
@@ -631,7 +631,7 @@ const pizzas = [
             "Spicy Salami",
             "Chili"
         ],
-        stock: 20
+        stock: 50
     },
     {
         id: "vegetariana",
@@ -648,7 +648,7 @@ const pizzas = [
             "Cherry Tomatoes",
             "Goat Cheese"
         ],
-        stock: 18
+        stock: 50
     },
     {
         id: "truffle",
@@ -664,7 +664,7 @@ const pizzas = [
             "Fontina",
             "Arugula"
         ],
-        stock: 10
+        stock: 50
     },
     {
         id: "hawaiian",
@@ -680,7 +680,7 @@ const pizzas = [
             "Ham",
             "Pineapple"
         ],
-        stock: 22
+        stock: 50
     },
     {
         id: "mediterranean",
@@ -696,7 +696,7 @@ const pizzas = [
             "Sun-dried Tomatoes",
             "Artichokes"
         ],
-        stock: 15
+        stock: 50
     },
     {
         id: "bbq-chicken",
@@ -712,7 +712,7 @@ const pizzas = [
             "Red Onions",
             "Smoked Gouda"
         ],
-        stock: 16
+        stock: 50
     },
     {
         id: "seafood",
@@ -729,7 +729,7 @@ const pizzas = [
             "Mussels",
             "Parsley"
         ],
-        stock: 8
+        stock: 50
     }
 ];
 const toppings = [

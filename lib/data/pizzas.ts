@@ -34,7 +34,7 @@ export const pizzas: Pizza[] = [
     category: "premium",
     available: true,
     toppings: ["Mozzarella", "Gorgonzola", "Parmesan", "Fontina"],
-    stock: 15,
+    stock: 50,
     popular: true,
   },
   {
@@ -46,7 +46,7 @@ export const pizzas: Pizza[] = [
     category: "specialty",
     available: true,
     toppings: ["Tomato Sauce", "Mozzarella", "Spicy Salami", "Chili"],
-    stock: 20,
+    stock: 50,
   },
   {
     id: "vegetariana",
@@ -57,7 +57,7 @@ export const pizzas: Pizza[] = [
     category: "vegetarian",
     available: true,
     toppings: ["Zucchini", "Bell Peppers", "Eggplant", "Cherry Tomatoes", "Goat Cheese"],
-    stock: 18,
+    stock: 50,
   },
   {
     id: "truffle",
@@ -68,7 +68,7 @@ export const pizzas: Pizza[] = [
     category: "premium",
     available: true,
     toppings: ["Truffle Cream", "Wild Mushrooms", "Fontina", "Arugula"],
-    stock: 10,
+    stock: 50,
   },
   {
     id: "hawaiian",
@@ -79,7 +79,7 @@ export const pizzas: Pizza[] = [
     category: "classic",
     available: true,
     toppings: ["Tomato Sauce", "Mozzarella", "Ham", "Pineapple"],
-    stock: 22,
+    stock: 50,
   },
   {
     id: "mediterranean",
@@ -90,7 +90,7 @@ export const pizzas: Pizza[] = [
     category: "vegetarian",
     available: true,
     toppings: ["Feta", "Olives", "Sun-dried Tomatoes", "Artichokes"],
-    stock: 15,
+    stock: 50,
   },
   {
     id: "bbq-chicken",
@@ -101,7 +101,7 @@ export const pizzas: Pizza[] = [
     category: "specialty",
     available: true,
     toppings: ["BBQ Sauce", "Grilled Chicken", "Red Onions", "Smoked Gouda"],
-    stock: 16,
+    stock: 50,
   },
   {
     id: "seafood",
@@ -112,7 +112,7 @@ export const pizzas: Pizza[] = [
     category: "premium",
     available: true,
     toppings: ["Garlic Butter", "Shrimp", "Calamari", "Mussels", "Parsley"],
-    stock: 8,
+    stock: 50,
   },
 ]
 
