@@ -2,20 +2,24 @@ import { test, expect } from "@playwright/test";
 test.describe("Canjeo de puntos", () => {
 
 test("Interfaz indicador de puntos totales en cuenta", async ({ page }) => {
-  await page.goto('http://localhost:3000/');
+  await page.goto('http://localhost:3001/');
+  await expect(page.getByText('Imperial PizzeriaHomeMenuTrack Order250 ptsLogin')).toBeVisible();
   await expect(page.locator('div').filter({ hasText: /^250 pts$/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Add' }).nth(1).click();
-  await page.getByRole('button', { name: '1' }).click();
-  await page.getByRole('button', { name: 'Proceed to Checkout' }).click();
-  await page.getByRole('button', { name: 'TakeAway ~20 min' }).click();
-  await page.getByRole('textbox', { name: 'Full Name' }).click();
-  await page.getByRole('textbox', { name: 'Full Name' }).fill('test1');
-  await page.getByRole('textbox', { name: 'Phone Number' }).click();
-  await page.getByRole('textbox', { name: 'Phone Number' }).fill('1234');
-  await expect(page.getByText('Redeem PointsYou have 250')).toBeVisible();
-  await page.getByRole('slider').click();
-  await page.locator('.bg-muted').click();
-  await expect(page.getByText('Points Discount-$')).toBeVisible();
-  await page.getByRole('button', { name: 'Place Order - $' }).click();
+  await expect(page.getByRole('navigation')).toContainText('250 pts');
 });
+
+test("Descuentos de puntos por items de la lista de compras", async ({ page }) => {
+  await page.goto('http://localhost:3001/');
+  await page.getByRole('button', { name: 'Order Now' }).click();
+  await page.getByRole('button', { name: 'Add' }).nth(1).click();
+  await page.getByRole('button', { name: 'Add' }).first().click();
+  await page.getByRole('button', { name: '2' }).click();
+  await expect(page.locator('div').filter({ hasText: 'Pepperoni Reale1$16.99Use' }).nth(3)).toBeVisible();
+  await expect(page.getByText('Use points for this item25 points = $2.00 discountAvailable for this item: 250').first()).toBeVisible();
+  await page.getByRole('button').filter({ hasText: /^$/ }).nth(4).click();
+  await expect(page.getByText('Points:0($0.00)$0.00 discount0 pts$16.96')).toBeVisible();
+  await expect(page.getByText('Order Summary1x Pepperoni')).toBeVisible();
+  await page.getByRole('button', { name: 'Proceed to Checkout' }).click();
+  await expect(page.getByText('Points Discount-$')).toBeVisible()
+})
 })

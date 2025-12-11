@@ -10,7 +10,7 @@ export const pizzas: Pizza[] = [
     category: "classic",
     available: true,
     toppings: ["Tomato Sauce", "Mozzarella", "Basil"],
-    stock: 25,
+    stock: 50,
     popular: true,
   },
   {
@@ -22,7 +22,7 @@ export const pizzas: Pizza[] = [
     category: "classic",
     available: true,
     toppings: ["Tomato Sauce", "Mozzarella", "Pepperoni"],
-    stock: 30,
+    stock: 50,
     popular: true,
   },
   {

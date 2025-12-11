@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { MapPin, Phone, User, CreditCard, ArrowLeft, Crown, Banknote, Truck, Store, X } from "lucide-react"
+import { MapPin, Phone, User, CreditCard, ArrowLeft, Crown, Banknote, Truck, Store, X, Coins } from "lucide-react"
 import { useAppStore } from "@/lib/store/app-store"
 import { usePoints } from "@/lib/store/points-context"
 import { useStock } from "@/lib/store/stock-store"
@@ -13,16 +13,18 @@ import type { Order, OrderStatus } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
+// Nueva equivalencia: 25 puntos = $2.00
+const POINTS_TO_DOLLAR_RATE = 2.00 / 25 // $0.08 por punto
+
 export function CheckoutForm() {
   const router = useRouter()
   const { state, dispatch } = useAppStore()
-  const { points, usePoints: spendPoints, addPoints } = usePoints()
+  const { addPoints } = usePoints()
   const { dispatch: stockDispatch } = useStock()
   const { simulateOrderProgress } = useWebSocket()
   const { toast } = useToast()
@@ -32,7 +34,6 @@ export function CheckoutForm() {
     phone: "",
     address: "",
   })
-  const [pointsToRedeem, setPointsToRedeem] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway">("delivery")
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash")
@@ -44,13 +45,19 @@ export function CheckoutForm() {
     name: "",
   })
 
+  // Calcula el descuento en dólares basado en los puntos usados
+  const calculateDiscountFromPoints = (pointsUsed: number) => {
+    return pointsUsed * POINTS_TO_DOLLAR_RATE
+  }
+
   const subtotal = useMemo(() => {
-    return state.cart.reduce((sum, item) => sum + item.totalPrice, 0)
+    return state.cart.reduce((sum, item) => {
+      const itemDiscount = calculateDiscountFromPoints(item.pointsUsed || 0)
+      return sum + Math.max(0, item.totalPrice - itemDiscount)
+    }, 0)
   }, [state.cart])
 
-  const maxRedeemablePoints = Math.min(points, Math.floor(subtotal) * 100)
-  const discount = pointsToRedeem / 100
-  const total = Math.max(0, subtotal - discount)
+  const total = subtotal
   const pointsEarned = Math.floor(subtotal)
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,13 +119,16 @@ export function CheckoutForm() {
       })
     })
 
+    // Calculate total points used from all items
+    const totalPointsUsed = state.cart.reduce((sum, item) => sum + (item.pointsUsed || 0), 0)
+
     const order: Order = {
       id: `ORD-${Date.now()}`,
       items: state.cart,
       status: "pending" as OrderStatus,
       totalPrice: total,
-      discountApplied: discount,
-      pointsUsed: pointsToRedeem,
+      discountApplied: calculateDiscountFromPoints(totalPointsUsed),
+      pointsUsed: totalPointsUsed,
       pointsEarned,
       customerName: formData.name,
       customerPhone: formData.phone,
@@ -132,9 +142,6 @@ export function CheckoutForm() {
       cardInfo: paymentMethod === "card" ? { lastFour: cardData.number.slice(-4) } : undefined,
     }
 
-    if (pointsToRedeem > 0) {
-      spendPoints(pointsToRedeem)
-    }
     addPoints(pointsEarned)
 
     dispatch({ type: "ADD_ORDER", payload: order })
@@ -295,34 +302,7 @@ export function CheckoutForm() {
               </motion.div>
             )}
 
-            {/* Points Redemption */}
-            {points > 0 && (
-              <div className="rounded-xl bg-secondary/10 border border-secondary/30 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Crown className="h-5 w-5 text-secondary" />
-                  <h2 className="font-semibold text-lg text-foreground">Redeem Points</h2>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  You have <span className="font-semibold text-secondary-foreground">{points} points</span> available.
-                  100 points = $1.00 discount.
-                </p>
-                <Slider
-                  value={[pointsToRedeem]}
-                  onValueChange={(v) => setPointsToRedeem(Math.floor(v[0] / 100) * 100)}
-                  max={maxRedeemablePoints}
-                  step={100}
-                  className="mb-4"
-                />
-                <div className="flex justify-between text-sm">
-                  <span>Points to use:</span>
-                  <AnimatedCounter value={pointsToRedeem} className="font-semibold" />
-                </div>
-                {pointsToRedeem > 0 && (
-                  <p className="text-sm text-green-600 mt-2">You save ${(pointsToRedeem / 100).toFixed(2)}!</p>
-                )}
-              </div>
-            )}
-
+            {/* Payment Method */}
             <div className="rounded-xl bg-card border border-border p-6">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="h-5 w-5" />
@@ -468,19 +448,29 @@ export function CheckoutForm() {
             <h2 className="font-serif text-xl font-bold text-foreground mb-4">Order Summary</h2>
 
             <div className="space-y-3 mb-4">
-              {state.cart.map((item) => (
-                <div key={item.id} className="text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {item.quantity}x {item.pizza.name}
-                    </span>
-                    <span>${item.totalPrice.toFixed(2)}</span>
+              {state.cart.map((item) => {
+                const itemDiscount = calculateDiscountFromPoints(item.pointsUsed || 0)
+                const itemFinalPrice = Math.max(0, item.totalPrice - itemDiscount)
+                
+                return (
+                  <div key={item.id} className="text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {item.quantity}x {item.pizza.name}
+                      </span>
+                      <span>${itemFinalPrice.toFixed(2)}</span>
+                    </div>
+                    {item.selectedToppings.length > 0 && (
+                      <p className="text-xs text-primary ml-4">+ {item.selectedToppings.map((t) => t.name).join(", ")}</p>
+                    )}
+                    {(item.pointsUsed || 0) > 0 && (
+                      <p className="text-xs text-green-600 ml-4">
+                        -${itemDiscount.toFixed(2)} from points ({item.pointsUsed} pts)
+                      </p>
+                    )}
                   </div>
-                  {item.selectedToppings.length > 0 && (
-                    <p className="text-xs text-primary ml-4">+ {item.selectedToppings.map((t) => t.name).join(", ")}</p>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="space-y-2 border-t border-border pt-4">
@@ -488,12 +478,16 @@ export function CheckoutForm() {
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Points Discount</span>
-                  <span>-${discount.toFixed(2)}</span>
-                </div>
-              )}
+              
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Points Discount</span>
+                <span>
+                  -$
+                  {state.cart.reduce((sum, item) => 
+                    sum + calculateDiscountFromPoints(item.pointsUsed || 0), 0).toFixed(2)}
+                </span>
+              </div>
+              
               <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
                 <span>Total</span>
                 <span className="text-primary">${total.toFixed(2)}</span>
@@ -504,6 +498,10 @@ export function CheckoutForm() {
               <p className="text-sm text-secondary-foreground flex items-center gap-2">
                 <Crown className="h-4 w-4" />
                 Earn {pointsEarned} points with this order!
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                <Coins className="h-3 w-3" />
+                25 points = $2.00 discount
               </p>
             </div>
 

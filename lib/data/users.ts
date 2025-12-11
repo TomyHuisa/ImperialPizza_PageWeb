@@ -7,7 +7,7 @@ export const demoUsers: User[] = [
     email: "customer@imperial.pizza",
     phone: "+1 555-0100",
     role: "customer",
-    points: 500,
+    points: 250,
     password: "customer123",
   },
   {
@@ -16,7 +16,7 @@ export const demoUsers: User[] = [
     email: "admin@imperial.pizza",
     phone: "+1 555-0101",
     role: "admin",
-    points: 0,
+    points: 250,
     password: "admin123",
   },
   {
@@ -25,7 +25,7 @@ export const demoUsers: User[] = [
     email: "kitchen@imperial.pizza",
     phone: "+1 555-0102",
     role: "kitchen",
-    points: 0,
+    points: 250,
     password: "kitchen123",
   },
   {
@@ -34,7 +34,7 @@ export const demoUsers: User[] = [
     email: "driver@imperial.pizza",
     phone: "+1 555-0103",
     role: "driver",
-    points: 0,
+    points: 250,
     password: "driver123",
   },
 ]
