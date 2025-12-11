@@ -13,7 +13,7 @@ test("Interfaz indicador de puntos totales en cuenta", async ({ page }) => {
   await page.getByRole('textbox', { name: 'Phone Number' }).click();
   await page.getByRole('textbox', { name: 'Phone Number' }).fill('1234');
   await expect(page.getByText('Redeem PointsYou have 250')).toBeVisible();
-  await page.getByRole('slider').cliack();
+  await page.getByRole('slider').click();
   await page.locator('.bg-muted').click();
   await expect(page.getByText('Points Discount-$')).toBeVisible();
   await page.getByRole('button', { name: 'Place Order - $' }).click();
