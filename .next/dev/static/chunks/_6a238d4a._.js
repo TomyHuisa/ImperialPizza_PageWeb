@@ -388,7 +388,7 @@ const demoUsers = [
         email: "customer@imperial.pizza",
         phone: "+1 555-0100",
         role: "customer",
-        points: 500,
+        points: 250,
         password: "customer123"
     },
     {
@@ -397,7 +397,7 @@ const demoUsers = [
         email: "admin@imperial.pizza",
         phone: "+1 555-0101",
         role: "admin",
-        points: 0,
+        points: 250,
         password: "admin123"
     },
     {
@@ -406,7 +406,7 @@ const demoUsers = [
         email: "kitchen@imperial.pizza",
         phone: "+1 555-0102",
         role: "kitchen",
-        points: 0,
+        points: 250,
         password: "kitchen123"
     },
     {
@@ -415,7 +415,7 @@ const demoUsers = [
         email: "driver@imperial.pizza",
         phone: "+1 555-0103",
         role: "driver",
-        points: 0,
+        points: 250,
         password: "driver123"
     }
 ];
@@ -635,7 +635,7 @@ const pizzas = [
             "Mozzarella",
             "Basil"
         ],
-        stock: 25,
+        stock: 50,
         popular: true
     },
     {
@@ -651,7 +651,7 @@ const pizzas = [
             "Mozzarella",
             "Pepperoni"
         ],
-        stock: 30,
+        stock: 50,
         popular: true
     },
     {
@@ -668,7 +668,7 @@ const pizzas = [
             "Parmesan",
             "Fontina"
         ],
-        stock: 15,
+        stock: 50,
         popular: true
     },
     {
@@ -685,7 +685,7 @@ const pizzas = [
             "Spicy Salami",
             "Chili"
         ],
-        stock: 20
+        stock: 50
     },
     {
         id: "vegetariana",
@@ -702,7 +702,7 @@ const pizzas = [
             "Cherry Tomatoes",
             "Goat Cheese"
         ],
-        stock: 18
+        stock: 50
     },
     {
         id: "truffle",
@@ -718,7 +718,7 @@ const pizzas = [
             "Fontina",
             "Arugula"
         ],
-        stock: 10
+        stock: 50
     },
     {
         id: "hawaiian",
@@ -734,7 +734,7 @@ const pizzas = [
             "Ham",
             "Pineapple"
         ],
-        stock: 22
+        stock: 50
     },
     {
         id: "mediterranean",
@@ -750,7 +750,7 @@ const pizzas = [
             "Sun-dried Tomatoes",
             "Artichokes"
         ],
-        stock: 15
+        stock: 50
     },
     {
         id: "bbq-chicken",
@@ -766,7 +766,7 @@ const pizzas = [
             "Red Onions",
             "Smoked Gouda"
         ],
-        stock: 16
+        stock: 50
     },
     {
         id: "seafood",
@@ -783,7 +783,7 @@ const pizzas = [
             "Mussels",
             "Parsley"
         ],
-        stock: 8
+        stock: 50
     }
 ];
 const toppings = [
