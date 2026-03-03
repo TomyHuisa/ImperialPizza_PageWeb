@@ -680,7 +680,7 @@ const pizzas = [
             "Ham",
             "Pineapple"
         ],
-        stock: 50
+        stock: 0
     },
     {
         id: "mediterranean",

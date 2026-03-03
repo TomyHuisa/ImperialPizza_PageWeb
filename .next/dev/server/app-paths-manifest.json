@@ -1,8 +1,6 @@
 {
   "/cart/page": "app/cart/page.js",
   "/checkout/page": "app/checkout/page.js",
-  "/driver/page": "app/driver/page.js",
-  "/kitchen/page": "app/kitchen/page.js",
   "/login/page": "app/login/page.js",
   "/menu/page": "app/menu/page.js",
   "/page": "app/page.js",

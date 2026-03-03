@@ -1,10 +1,11 @@
-import type { Pizza, Topping, Drink, Dessert } from "@/lib/types"
+import type { Pizza, Topping, Drink, Dessert } from "@/lib/types";
 
 export const pizzas: Pizza[] = [
   {
     id: "margherita",
     name: "Margherita Imperiale",
-    description: "San Marzano tomatoes, fresh mozzarella di bufala, basil, and extra virgin olive oil",
+    description:
+      "San Marzano tomatoes, fresh mozzarella di bufala, basil, and extra virgin olive oil",
     price: 14.99,
     image: "/margherita-pizza-fresh-basil-mozzarella.jpg",
     category: "classic",
@@ -16,7 +17,8 @@ export const pizzas: Pizza[] = [
   {
     id: "pepperoni",
     name: "Pepperoni Reale",
-    description: "Spicy pepperoni, premium mozzarella, and our signature tomato sauce",
+    description:
+      "Spicy pepperoni, premium mozzarella, and our signature tomato sauce",
     price: 16.99,
     image: "/pepperoni-pizza-crispy-edges-melted-cheese.jpg",
     category: "classic",
@@ -28,7 +30,8 @@ export const pizzas: Pizza[] = [
   {
     id: "quattro-formaggi",
     name: "Quattro Formaggi",
-    description: "Mozzarella, gorgonzola, parmesan, and fontina on a crispy base",
+    description:
+      "Mozzarella, gorgonzola, parmesan, and fontina on a crispy base",
     price: 18.99,
     image: "/four-cheese-pizza-melted-gourmet.jpg",
     category: "premium",
@@ -40,7 +43,8 @@ export const pizzas: Pizza[] = [
   {
     id: "diavola",
     name: "Diavola Inferno",
-    description: "Spicy salami, calabrian chili, roasted peppers, and fresh mozzarella",
+    description:
+      "Spicy salami, calabrian chili, roasted peppers, and fresh mozzarella",
     price: 17.99,
     image: "/spicy-diavola-pizza-with-peppers-chili.jpg",
     category: "specialty",
@@ -51,18 +55,26 @@ export const pizzas: Pizza[] = [
   {
     id: "vegetariana",
     name: "Giardino Verde",
-    description: "Grilled zucchini, bell peppers, eggplant, cherry tomatoes, and goat cheese",
+    description:
+      "Grilled zucchini, bell peppers, eggplant, cherry tomatoes, and goat cheese",
     price: 15.99,
     image: "/vegetarian-grilled-vegetables-pizza.jpg",
     category: "vegetarian",
     available: true,
-    toppings: ["Zucchini", "Bell Peppers", "Eggplant", "Cherry Tomatoes", "Goat Cheese"],
+    toppings: [
+      "Zucchini",
+      "Bell Peppers",
+      "Eggplant",
+      "Cherry Tomatoes",
+      "Goat Cheese",
+    ],
     stock: 50,
   },
   {
     id: "truffle",
     name: "Tartufo Nero",
-    description: "Black truffle cream, wild mushrooms, fontina cheese, and fresh arugula",
+    description:
+      "Black truffle cream, wild mushrooms, fontina cheese, and fresh arugula",
     price: 24.99,
     image: "/truffle-mushroom-pizza-gourmet-luxury.jpg",
     category: "premium",
@@ -79,12 +91,13 @@ export const pizzas: Pizza[] = [
     category: "classic",
     available: true,
     toppings: ["Tomato Sauce", "Mozzarella", "Ham", "Pineapple"],
-    stock: 50,
+    stock: 0,
   },
   {
     id: "mediterranean",
     name: "Mediterranean Dream",
-    description: "Feta cheese, olives, sun-dried tomatoes, artichokes, and fresh oregano",
+    description:
+      "Feta cheese, olives, sun-dried tomatoes, artichokes, and fresh oregano",
     price: 17.99,
     image: "/mediterranean-pizza-feta-olives.jpg",
     category: "vegetarian",
@@ -95,7 +108,8 @@ export const pizzas: Pizza[] = [
   {
     id: "bbq-chicken",
     name: "BBQ Chicken Supreme",
-    description: "Grilled chicken, BBQ sauce, red onions, cilantro, and smoked gouda",
+    description:
+      "Grilled chicken, BBQ sauce, red onions, cilantro, and smoked gouda",
     price: 18.99,
     image: "/bbq-chicken-pizza-grilled-onions.jpg",
     category: "specialty",
@@ -114,22 +128,52 @@ export const pizzas: Pizza[] = [
     toppings: ["Garlic Butter", "Shrimp", "Calamari", "Mussels", "Parsley"],
     stock: 50,
   },
-]
+];
 
 export const toppings: Topping[] = [
   { id: "pepperoni", name: "Pepperoni", price: 2.0, category: "meat" },
-  { id: "italian-sausage", name: "Italian Sausage", price: 2.5, category: "meat" },
+  {
+    id: "italian-sausage",
+    name: "Italian Sausage",
+    price: 2.5,
+    category: "meat",
+  },
   { id: "bacon", name: "Crispy Bacon", price: 2.5, category: "meat" },
   { id: "ham", name: "Smoked Ham", price: 2.0, category: "meat" },
-  { id: "mushrooms", name: "Fresh Mushrooms", price: 1.5, category: "vegetable" },
-  { id: "onions", name: "Caramelized Onions", price: 1.0, category: "vegetable" },
-  { id: "bell-peppers", name: "Bell Peppers", price: 1.0, category: "vegetable" },
+  {
+    id: "mushrooms",
+    name: "Fresh Mushrooms",
+    price: 1.5,
+    category: "vegetable",
+  },
+  {
+    id: "onions",
+    name: "Caramelized Onions",
+    price: 1.0,
+    category: "vegetable",
+  },
+  {
+    id: "bell-peppers",
+    name: "Bell Peppers",
+    price: 1.0,
+    category: "vegetable",
+  },
   { id: "olives", name: "Kalamata Olives", price: 1.5, category: "vegetable" },
-  { id: "jalapenos", name: "Fresh Jalapenos", price: 1.0, category: "vegetable" },
-  { id: "extra-mozzarella", name: "Extra Mozzarella", price: 2.0, category: "cheese" },
+  {
+    id: "jalapenos",
+    name: "Fresh Jalapenos",
+    price: 1.0,
+    category: "vegetable",
+  },
+  {
+    id: "extra-mozzarella",
+    name: "Extra Mozzarella",
+    price: 2.0,
+    category: "cheese",
+  },
   { id: "parmesan", name: "Aged Parmesan", price: 2.5, category: "cheese" },
   { id: "goat-cheese", name: "Goat Cheese", price: 3.0, category: "cheese" },
-]
+];
 
 export const drinks: Drink[] = [
   {
@@ -186,7 +230,7 @@ export const drinks: Drink[] = [
     size: "medium",
     stock: 25,
   },
-]
+];
 
 export const desserts: Dessert[] = [
   {
@@ -229,4 +273,4 @@ export const desserts: Dessert[] = [
     image: "/placeholder.svg?height=300&width=300",
     stock: 18,
   },
-]
+];
