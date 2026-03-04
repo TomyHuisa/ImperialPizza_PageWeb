@@ -1,230 +1,58 @@
-[00:00:02.062] Server  LOG      ✓ Ready in 1151ms
-[00:02:24.765] Server  LOG      ○ Compiling / ...
-[00:02:33.904] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:02:34.030] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:02:38.411] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:02:38.411] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:02:38.411] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/cart","route":"/cart"}
-[00:02:38.411] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567251407} /_vercel/insights/view
-[00:02:38.411] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567251408} /_vercel/insights/view
-[00:08:02.084] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:08:02.166] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:08:03.947] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:08:03.947] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:08:03.947] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567576943} /_vercel/insights/view
-[00:08:04.256] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567577258} /_vercel/insights/view
-[00:08:42.643] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:08:43.151] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:08:43.151] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:08:43.151] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567616160} /_vercel/insights/view
-[00:08:50.253] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/login color: rgb(120, 120, 120) color: inherit {"dp":"/login","o":"http://localhost:3000/login","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567623253} /_vercel/insights/view
-[00:09:04.576] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567637571} /_vercel/insights/view
-[00:09:34.891] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/track color: rgb(120, 120, 120) color: inherit {"dp":"/track","o":"http://localhost:3000/track","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567667888} /_vercel/insights/view
-[00:09:36.154] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567669134} /_vercel/insights/view
-[00:11:16.880] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567769876} /_vercel/insights/view
-[00:11:59.776] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567812768} /_vercel/insights/view
-[00:12:06.514] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772567819511} /_vercel/insights/view
-[00:15:45.435] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568038419} /_vercel/insights/view
-[00:15:48.095] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/track color: rgb(120, 120, 120) color: inherit {"dp":"/track","o":"http://localhost:3000/track","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568041094} /_vercel/insights/view
-[00:15:49.864] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568042861} /_vercel/insights/view
-[00:15:52.550] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568045510} /_vercel/insights/view
-[00:15:55.956] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/login color: rgb(120, 120, 120) color: inherit {"dp":"/login","o":"http://localhost:3000/login","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568048963} /_vercel/insights/view
-[00:23:55.968] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:23:56.640] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[00:00:05.031] Server  LOG      ✓ Ready in 4.1s
+[00:00:23.136] Server  LOG      ○ Compiling /notifs ...
+[00:00:36.346] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:36.545] Browser LOG     SW registrado correctamente: {}
+[00:00:36.821] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:36.821] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/notifs","route":"/notifs"}
+[00:00:36.821] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/notifs color: rgb(120, 120, 120) color: inherit {"dp":"/notifs","o":"http://localhost:3000/notifs","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772597642155} /_vercel/insights/view
+[00:00:41.670] Browser LOG     Token: fo6Y0sB56GdF0NtXYtWtKv:APA91bF3n7EtYuJJ4tZtCm9rtEVHDmhtuWKkQcSWGAVcfCncdPmn9n8QbthDt5PrKAapwiIoLAI94Wn8PteobfGFbicaQTy_j0dYoIKIpC9wEOqwVDvt7Ds
+[00:02:11.844] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_8547069174782287643","data":{"gcm.n.e":"1","google.c.a.c_id":"8547069174782287643","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772597736","google.c.a.udt":"0"},"from":"979871430084","messageId":"f28f1014-2bc1-492d-a4dc-c12eb5642d92","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:02:18.896] Browser LOG     Usuario: {"operationType":"signIn","providerId":null,"user":{"apiKey":"AIzaSyB4N88EgeUrrXFGTeYFg0Gblzd_dsJdPJE","appName":"[DEFAULT]","createdAt":"1772594548289","emailVerified":false,"isAnonymous":true,"lastLoginAt":"1772594548289","providerData":[],"stsTokenManager":{"accessToken":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjJhYWM0MWY3NTA4OGZlOGUwOWEwN2Q0NDRjZmQ2YjhjZTQ4MTJhMzEiLCJ0eXAiOiJKV1QifQ.eyJwcm92aWRlcl9pZCI6ImFub255bW91cyIsImlzcyI6Imh0dHBzOi8vc2VjdXJldG9rZW4uZ29vZ2xlLmNvbS9wcm95ZWN0b2ltcGVyaWFsLTVkOTE0IiwiYXVkIjoicHJveWVjdG9pbXBlcmlhbC01ZDkxNCIsImF1dGhfdGltZSI6MTc3MjU5NDU0OCwidXNlcl9pZCI6InNNM0Z6ZzM4ZlVVVTBhNDd0M09LeWYwTk53ejEiLCJzdWIiOiJzTTNGemczOGZVVVUwYTQ3dDNPS3lmME5Od3oxIiwiaWF0IjoxNzcyNTk0NTQ4LCJleHAiOjE3NzI1OTgxNDgsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnt9LCJzaWduX2luX3Byb3ZpZGVyIjoiYW5vbnltb3VzIn19.pY4yt_Tt8E1jzImqDKPWVsTKjYR9UpdL-lXsZ1lHRXNaeTqjzDjBzkEcyaMjRhulRrkbqxJ7C8wmQ2BgA_gKyWu4Zie6E9WfzL0H6sA5E6SMnFXsMpcR5RnbrfGQNfy4zIvJgfs_eb5pqdk9T4VjZhm1zCi9rjN4hsLhnVBzH8oYRqNbT5GuQd9dk9a4HC_6bFIsUS7axQfo8HdLPoKACW3U-EHddpjQ70dQW279U60wnZQVwKLPkrnw3gDAK6s--Ci7me9CSUI-zHt94vBbVsc8rq8GkX-tnGm37aYq4FqE5nvQjWfT6qlCUillsTrukhfEfqEk2UyfjTBFlDYe_g","expirationTime":1772598148530,"refreshToken":"AMf-vBzjka9_YNZOBOAQwVRFiiF7sAG5g4WKr_eDhoEk0j0x0XET-xnt9aCJgi8XTJe8yHwfIpn3Wkez9eooV0nFrNqpQkthtBvVP9NVytZzq2gEZNjGmP_i7xIOPy3QFmjO7g7_rn0E_CmfHrWBKGVMwhPwCeGju6KpLD2HnRIFqeqF2FSVnBTywvdDNLgs0fKPYhyijIINj9xyHGJjZPl1Od-Hf3gwHQ"},"uid":"sM3Fzg38fUUU0a47t3OKyf0NNwz1"}}
+[00:04:21.039] Server  LOG      ✓ Compiled in 182ms
+[00:04:21.844] Browser ERROR   ./app/notifs/page.tsx:63:2
+Parsing ecmascript source code failed
+  61 |   return () => unsubscribe()
+  62 | }, [])
+> 63 | }, [])
+     |  ^
+  64 |
+  65 |   return (
+  66 |     <div className="p-10 space-y-4">
 
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
+Expression expected
 
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+Import traces:
+  Client Component Browser:
+    ./app/notifs/page.tsx [Client Component Browser]
+    ./app/notifs/page.tsx [Server Component]
 
-%s%s https://react.dev/link/hydration-mismatch 
-
-  ...
-    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
-      <AppDevOverlayErrorBoundary globalError={[...]}>
-        <ReplaySsrOnlyErrors>
-        <DevRootHTTPAccessFallbackBoundary>
-          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
-            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
-              <RedirectBoundary>
-                <RedirectErrorBoundary router={{...}}>
-                  <Head>
-                  <__next_root_layout_boundary__>
-                    <SegmentViewNode type="layout" pagePath="layout.tsx">
-                      <SegmentTrieNode>
-                      <link>
-                      <script>
-                      <script>
-                      <script>
-                      <RootLayout>
-                        <html lang="en" className="inter_5901...">
-                          <body
-                            className="font-sans antialiased"
--                           data-pw-cursor="pointer"
-                          >
-                  ...
-
-[00:23:57.203] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:23:57.203] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:23:57.203] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568530211} /_vercel/insights/view
-[00:26:51.448] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568704347} /_vercel/insights/view
-[00:27:20.346] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568733339} /_vercel/insights/view
-[00:28:05.817] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568778760} /_vercel/insights/view
-[00:30:33.545] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772568926539} /_vercel/insights/view
-[00:31:54.355] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:32:14.121] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569027104} /_vercel/insights/view
-[00:41:05.245] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:41:10.305] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:41:11.611] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:41:11.611] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:41:11.611] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569564618} /_vercel/insights/view
-[00:41:19.018] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:41:53.824] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569606824} /_vercel/insights/view
-[00:41:56.491] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569609389} /_vercel/insights/view
-[00:42:02.503] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569615503} /_vercel/insights/view
-[00:42:17.338] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569630288} /_vercel/insights/view
-[00:42:21.895] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569634898} /_vercel/insights/view
-[00:42:33.853] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569646855} /_vercel/insights/view
-[00:42:41.520] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/track color: rgb(120, 120, 120) color: inherit {"dp":"/track","o":"http://localhost:3000/track","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569654519} /_vercel/insights/view
-[00:42:48.135] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569661137} /_vercel/insights/view
-[00:42:50.335] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569663285} /_vercel/insights/view
-[00:43:48.221] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569721225} /_vercel/insights/view
-[00:43:50.103] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/track color: rgb(120, 120, 120) color: inherit {"dp":"/track","o":"http://localhost:3000/track","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569723106} /_vercel/insights/view
-[00:43:54.129] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569727125} /_vercel/insights/view
-[00:43:56.460] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569729397} /_vercel/insights/view
-[00:45:23.053] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:45:23.145] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:45:24.046] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:45:24.046] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:45:24.046] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569817051} /_vercel/insights/view
-[00:45:24.477] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:45:26.181] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:45:27.262] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:45:27.262] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:45:27.262] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569820270} /_vercel/insights/view
-[00:45:27.560] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:45:54.552] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569847520} /_vercel/insights/view
-[00:45:56.370] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569849366} /_vercel/insights/view
-[00:46:01.572] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/track color: rgb(120, 120, 120) color: inherit {"dp":"/track","o":"http://localhost:3000/track","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569854575} /_vercel/insights/view
-[00:46:14.531] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569867529} /_vercel/insights/view
-[00:46:18.431] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569871360} /_vercel/insights/view
-[00:46:31.340] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:46:32.958] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:46:34.667] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:46:34.668] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:46:34.668] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569887675} /_vercel/insights/view
-[00:46:55.092] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:01.524] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:01.552] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:05.172] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:05.375] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:47:07.217] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:47:07.217] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:47:07.217] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772569920220} /_vercel/insights/view
-[00:47:07.601] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:48:38.336] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:48:39.156] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:48:40.282] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:48:40.282] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:48:40.282] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570013280} /_vercel/insights/view
-[00:48:40.592] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:49:24.464] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:49:25.552] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:49:25.552] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:49:25.552] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570058557} /_vercel/insights/view
-[00:49:25.934] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:49:39.100] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:49:40.132] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:49:40.133] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:49:40.133] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570073137} /_vercel/insights/view
-[00:49:40.579] Browser WARN    Image with src "/truffle-mushroom-pizza-gourmet-luxury.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:51:43.959] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:51:45.166] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:51:45.166] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:51:45.166] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570198171} /_vercel/insights/view
-[00:51:45.497] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:54:39.221] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:54:40.313] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:54:40.313] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:54:40.313] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570373312} /_vercel/insights/view
-[00:54:40.739] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:55:32.100] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:55:33.436] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:55:33.436] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:55:33.436] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570426435} /_vercel/insights/view
-[00:55:33.804] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:55:51.146] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:55:52.325] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:55:52.325] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:55:52.325] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570445322} /_vercel/insights/view
-[00:55:52.667] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:56:31.382] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570484377} /_vercel/insights/view
-[00:56:33.762] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570486697} /_vercel/insights/view
-[00:56:55.037] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/login color: rgb(120, 120, 120) color: inherit {"dp":"/login","o":"http://localhost:3000/login","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570508041} /_vercel/insights/view
-[00:56:59.342] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570512336} /_vercel/insights/view
-[00:57:02.392] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570515359} /_vercel/insights/view
-[00:57:44.258] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:57:45.386] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:57:45.386] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:57:45.386] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570558393} /_vercel/insights/view
-[00:57:45.680] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:58:31.951] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:58:33.173] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:58:33.173] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:58:33.173] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570606180} /_vercel/insights/view
-[00:58:33.479] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:59:51.666] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:59:52.775] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:59:52.775] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[00:59:52.775] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570685782} /_vercel/insights/view
-[00:59:53.026] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[01:00:10.155] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:00:11.360] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[01:00:11.360] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[01:00:11.360] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570704364} /_vercel/insights/view
-[01:00:11.674] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[01:00:34.844] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:00:35.992] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[01:00:35.993] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[01:00:35.993] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570729000} /_vercel/insights/view
-[01:00:36.292] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[01:00:51.430] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:00:52.589] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[01:00:52.589] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[01:00:52.589] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772570745597} /_vercel/insights/view
-[01:00:52.923] Browser WARN    Image with src "/margherita-pizza-fresh-basil-mozzarella.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[01:07:54.728] Server  LOG      ✓ Compiled in 624ms
-[01:08:11.351] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:22:51.991] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:22:52.024] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:22:54.255] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:22:55.106] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:23:16.132] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572089024} /_vercel/insights/view
-[01:23:25.361] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572098318} /_vercel/insights/view
-[01:23:32.475] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:23:33.238] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[01:23:33.238] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/menu","route":"/menu"}
-[01:23:33.238] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572106238} /_vercel/insights/view
-[01:23:43.174] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/cart color: rgb(120, 120, 120) color: inherit {"dp":"/cart","o":"http://localhost:3000/cart","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572116155} /_vercel/insights/view
-[01:23:46.666] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572119639} /_vercel/insights/view
-[01:25:01.893] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572194883} /_vercel/insights/view
-[01:25:13.469] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/menu color: rgb(120, 120, 120) color: inherit {"dp":"/menu","o":"http://localhost:3000/menu","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772572206434} /_vercel/insights/view
+  Client Component SSR:
+    ./app/notifs/page.tsx [Client Component SSR]
+    ./app/notifs/page.tsx [Server Component]
+[00:04:44.678] Browser LOG     Token: fo6Y0sB56GdF0NtXYtWtKv:APA91bF3n7EtYuJJ4tZtCm9rtEVHDmhtuWKkQcSWGAVcfCncdPmn9n8QbthDt5PrKAapwiIoLAI94Wn8PteobfGFbicaQTy_j0dYoIKIpC9wEOqwVDvt7Ds
+[00:05:10.640] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_6312275590627565007","data":{"gcm.n.e":"1","google.c.a.c_id":"6312275590627565007","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772597915","google.c.a.udt":"0"},"from":"979871430084","messageId":"8c81db5f-f067-4f09-ae92-de5df40ca1c9","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:05:21.312] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_1938596318667728724","data":{"gcm.n.e":"1","google.c.a.c_id":"1938596318667728724","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772597926","google.c.a.udt":"0"},"from":"979871430084","messageId":"0a14062d-923f-49ca-a17e-c7f12aa2aed4","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:05:25.295] Browser LOG     Token: fo6Y0sB56GdF0NtXYtWtKv:APA91bF3n7EtYuJJ4tZtCm9rtEVHDmhtuWKkQcSWGAVcfCncdPmn9n8QbthDt5PrKAapwiIoLAI94Wn8PteobfGFbicaQTy_j0dYoIKIpC9wEOqwVDvt7Ds
+[00:05:29.443] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:05:29.647] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:05:29.648] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/notifs","route":"/notifs"}
+[00:05:29.648] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/notifs color: rgb(120, 120, 120) color: inherit {"dp":"/notifs","o":"http://localhost:3000/notifs","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772597934976} /_vercel/insights/view
+[00:05:29.773] Browser LOG     SW registrado correctamente: {}
+[00:05:31.211] Browser LOG     Token: fo6Y0sB56GdF0NtXYtWtKv:APA91bF3n7EtYuJJ4tZtCm9rtEVHDmhtuWKkQcSWGAVcfCncdPmn9n8QbthDt5PrKAapwiIoLAI94Wn8PteobfGFbicaQTy_j0dYoIKIpC9wEOqwVDvt7Ds
+[00:05:32.780] Browser LOG     Usuario: {"operationType":"signIn","providerId":null,"user":{"apiKey":"AIzaSyB4N88EgeUrrXFGTeYFg0Gblzd_dsJdPJE","appName":"[DEFAULT]","createdAt":"1772594548289","emailVerified":false,"isAnonymous":true,"lastLoginAt":"1772594548289","providerData":[],"stsTokenManager":{"accessToken":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjJhYWM0MWY3NTA4OGZlOGUwOWEwN2Q0NDRjZmQ2YjhjZTQ4MTJhMzEiLCJ0eXAiOiJKV1QifQ.eyJwcm92aWRlcl9pZCI6ImFub255bW91cyIsImlzcyI6Imh0dHBzOi8vc2VjdXJldG9rZW4uZ29vZ2xlLmNvbS9wcm95ZWN0b2ltcGVyaWFsLTVkOTE0IiwiYXVkIjoicHJveWVjdG9pbXBlcmlhbC01ZDkxNCIsImF1dGhfdGltZSI6MTc3MjU5NDU0OCwidXNlcl9pZCI6InNNM0Z6ZzM4ZlVVVTBhNDd0M09LeWYwTk53ejEiLCJzdWIiOiJzTTNGemczOGZVVVUwYTQ3dDNPS3lmME5Od3oxIiwiaWF0IjoxNzcyNTk0NTQ4LCJleHAiOjE3NzI1OTgxNDgsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnt9LCJzaWduX2luX3Byb3ZpZGVyIjoiYW5vbnltb3VzIn19.pY4yt_Tt8E1jzImqDKPWVsTKjYR9UpdL-lXsZ1lHRXNaeTqjzDjBzkEcyaMjRhulRrkbqxJ7C8wmQ2BgA_gKyWu4Zie6E9WfzL0H6sA5E6SMnFXsMpcR5RnbrfGQNfy4zIvJgfs_eb5pqdk9T4VjZhm1zCi9rjN4hsLhnVBzH8oYRqNbT5GuQd9dk9a4HC_6bFIsUS7axQfo8HdLPoKACW3U-EHddpjQ70dQW279U60wnZQVwKLPkrnw3gDAK6s--Ci7me9CSUI-zHt94vBbVsc8rq8GkX-tnGm37aYq4FqE5nvQjWfT6qlCUillsTrukhfEfqEk2UyfjTBFlDYe_g","expirationTime":1772598148530,"refreshToken":"AMf-vBzjka9_YNZOBOAQwVRFiiF7sAG5g4WKr_eDhoEk0j0x0XET-xnt9aCJgi8XTJe8yHwfIpn3Wkez9eooV0nFrNqpQkthtBvVP9NVytZzq2gEZNjGmP_i7xIOPy3QFmjO7g7_rn0E_CmfHrWBKGVMwhPwCeGju6KpLD2HnRIFqeqF2FSVnBTywvdDNLgs0fKPYhyijIINj9xyHGJjZPl1Od-Hf3gwHQ"},"uid":"sM3Fzg38fUUU0a47t3OKyf0NNwz1"}}
+[00:05:39.692] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_7759880397100770402","data":{"gcm.n.e":"1","google.c.a.c_id":"7759880397100770402","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772597944","google.c.a.udt":"0"},"from":"979871430084","messageId":"93b24db5-f96f-4962-a79f-0d4da6ae79a4","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:11:37.636] Server  LOG      ○ Compiling / ...
+[00:11:39.385] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:11:40.011] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:11:40.012] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:11:40.012] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772598305351} /_vercel/insights/view
+[00:11:44.419] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:11:44.585] Browser LOG     SW registrado correctamente: {}
+[00:11:44.585] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:11:44.585] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/notifs","route":"/notifs"}
+[00:11:44.585] Browser LOG     %c[Vercel Web Analytics]%c [view] http://localhost:3000/notifs color: rgb(120, 120, 120) color: inherit {"dp":"/notifs","o":"http://localhost:3000/notifs","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1772598309919} /_vercel/insights/view
+[00:12:37.859] Browser LOG     Token: fo6Y0sB56GdF0NtXYtWtKv:APA91bF3n7EtYuJJ4tZtCm9rtEVHDmhtuWKkQcSWGAVcfCncdPmn9n8QbthDt5PrKAapwiIoLAI94Wn8PteobfGFbicaQTy_j0dYoIKIpC9wEOqwVDvt7Ds
+[00:12:46.253] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_3901992383171489481","data":{"gcm.n.e":"1","google.c.a.c_id":"3901992383171489481","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772598371","google.c.a.udt":"0"},"from":"979871430084","messageId":"694eb2df-56d5-4373-a239-e79c1acdcfb7","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:12:59.379] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_5901612432652121738","data":{"gcm.n.e":"1","google.c.a.c_id":"5901612432652121738","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772598384","google.c.a.udt":"0"},"from":"979871430084","messageId":"b47ca266-5046-4f26-ad20-87c8aa226901","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:13:33.801] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_3911423505123229887","data":{"gcm.n.e":"1","google.c.a.c_id":"3911423505123229887","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772598418","google.c.a.udt":"0"},"from":"979871430084","messageId":"fda57e0e-6240-418d-8e69-9c1a5b4b8d3a","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
+[00:14:43.353] Browser LOG     Mensaje recibido: {"collapseKey":"campaign_collapse_key_9140799264944201400","data":{"gcm.n.e":"1","gcm.notification.sound2":"default","google.c.a.c_id":"9140799264944201400","google.c.a.c_l":"Test","google.c.a.e":"1","google.c.a.ts":"1772598488","google.c.a.udt":"0"},"from":"979871430084","messageId":"895438fb-4fc6-418e-9c78-32c55b023f7a","notification":{"body":"Hola desde Firebase 🔔","title":"Test"}}
