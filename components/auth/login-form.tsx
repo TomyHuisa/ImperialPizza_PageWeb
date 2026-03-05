@@ -1,18 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Crown, Eye, EyeOff, LogIn, Users } from "lucide-react"
+// Agregado Loader2 aquí para corregir el ReferenceError
+import { Crown, Eye, EyeOff, LogIn, Users, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/store/auth-store"
-import { demoUsers } from "@/lib/data/users"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+// Ahora sí usaremos cn para los colores de los roles
 import { cn } from "@/lib/utils"
+
+const demoAccounts = [
+  { name: "Admin", email: "admin@imperial.pizza", role: "admin" },
+  { name: "Chef", email: "kitchen@imperial.pizza", role: "kitchen" },
+  { name: "Driver", email: "driver@imperial.pizza", role: "driver" },
+  { name: "Customer", email: "customer@imperial.pizza", role: "customer" },
+]
 
 export function LoginForm() {
   const router = useRouter()
@@ -21,71 +28,60 @@ export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showDemoAccounts, setShowDemoAccounts] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSubmitting(true)
 
-    const result = login(email, password)
+    const result = await login(email, password)
 
     if (result.success) {
       toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
+        title: "¡Bienvenido!",
+        description: "Sesión iniciada correctamente.",
       })
-      // Redirect based on role
-      const user = demoUsers.find((u) => u.email === email)
-      if (user) {
-        switch (user.role) {
-          case "admin":
-            router.push("/")
-            break
-          case "kitchen":
-            router.push("/kitchen")
-            break
-          case "driver":
-            router.push("/driver")
-            break
-          default:
-            router.push("/")
+
+      // Pequeña pausa para asegurar que el token se guarde en localStorage
+      setTimeout(() => {
+        const pbAuth = JSON.parse(localStorage.getItem("pocketbase_auth") || "{}")
+        const role = pbAuth?.model?.role || "customer"
+
+        switch (role) {
+          case "admin": router.push("/admin"); break
+          case "kitchen": router.push("/kitchen"); break
+          case "driver": router.push("/driver"); break
+          default: router.push("/")
         }
-      }
+      }, 400)
     } else {
       toast({
-        title: "Login failed",
-        description: result.error,
+        title: "Error",
+        description: result.error || "Credenciales inválidas",
         variant: "destructive",
       })
+      setIsSubmitting(false)
     }
-
-    setIsLoading(false)
   }
 
-  const handleDemoLogin = (userEmail: string, userPassword: string) => {
+  const handleDemoLogin = (userEmail: string) => {
     setEmail(userEmail)
-    setPassword(userPassword)
+    setPassword("12345678") // Contraseña genérica para tus pruebas
   }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <motion.div
-            whileHover={{ rotate: 10 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="inline-block mb-4"
-          >
+          <motion.div whileHover={{ rotate: 10 }} className="inline-block mb-4">
             <Crown className="h-12 w-12 text-primary mx-auto" />
           </motion.div>
           <h1 className="font-serif text-3xl font-bold text-foreground">Imperial Pizzeria</h1>
-          <p className="text-muted-foreground mt-2">Sign in to your account</p>
+          <p className="text-muted-foreground mt-2">Acceso al Sistema</p>
         </div>
 
-        {/* Login Form */}
-        <div className="rounded-xl bg-card border border-border p-6">
+        <div className="rounded-xl bg-card border border-border p-6 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -94,90 +90,75 @@ export function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                placeholder="usuario@imperial.pizza"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                "Signing in..."
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
-                </>
+                <LogIn className="h-4 w-4 mr-2" />
               )}
+              {isSubmitting ? "Entrando..." : "Iniciar Sesión"}
             </Button>
           </form>
 
-          {/* Demo Accounts Toggle */}
           <div className="mt-6 pt-6 border-t border-border">
             <button
               type="button"
               onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-              className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <Users className="h-4 w-4" />
-              {showDemoAccounts ? "Hide Demo Accounts" : "Show Demo Accounts"}
+              {showDemoAccounts ? "Ocultar cuentas" : "Ver cuentas de prueba"}
             </button>
 
-            {/* Demo Accounts List */}
             <motion.div
               initial={false}
               animate={{ height: showDemoAccounts ? "auto" : 0, opacity: showDemoAccounts ? 1 : 0 }}
               className="overflow-hidden"
             >
               <div className="mt-4 space-y-2">
-                {demoUsers.map((user) => (
+                {demoAccounts.map((account) => (
                   <button
-                    key={user.id}
+                    key={account.email}
                     type="button"
-                    onClick={() => handleDemoLogin(user.email, user.password!)}
-                    className={cn(
-                      "w-full p-3 rounded-lg border text-left transition-all hover:border-primary",
-                      email === user.email ? "border-primary bg-primary/5" : "border-border",
-                    )}
+                    onClick={() => handleDemoLogin(account.email)}
+                    className="w-full p-2 text-xs rounded border border-border hover:border-primary flex justify-between items-center transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                      <span
-                        className={cn(
-                          "px-2 py-1 text-xs font-medium rounded-full capitalize",
-                          user.role === "admin" && "bg-amber-500/20 text-amber-600",
-                          user.role === "customer" && "bg-blue-500/20 text-blue-600",
-                          user.role === "kitchen" && "bg-orange-500/20 text-orange-600",
-                          user.role === "driver" && "bg-green-500/20 text-green-600",
-                        )}
-                      >
-                        {user.role}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Password: {user.password}</p>
+                    <span>{account.email}</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                      account.role === "admin" && "bg-amber-500/10 text-amber-600",
+                      account.role === "kitchen" && "bg-orange-500/10 text-orange-600",
+                      account.role === "driver" && "bg-blue-500/10 text-blue-600",
+                      account.role === "customer" && "bg-green-500/10 text-green-600",
+                    )}>
+                      {account.role}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -185,10 +166,9 @@ export function LoginForm() {
           </div>
         </div>
 
-        {/* Continue as Guest */}
         <div className="mt-4 text-center">
           <Button variant="ghost" onClick={() => router.push("/")} className="text-muted-foreground">
-            Continue as Guest
+            Continuar como Invitado (Guest)
           </Button>
         </div>
       </motion.div>

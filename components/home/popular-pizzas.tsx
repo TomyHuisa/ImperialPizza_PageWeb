@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Sparkles, Loader2 } from "lucide-react"
 import type { Pizza, Topping } from "@/lib/types"
-import { pizzas } from "@/lib/data/pizzas"
+import { pb } from "@/lib/data/pocketbase"
 import { useAppDispatch } from "@/lib/store/app-store"
 import { PizzaCard } from "@/components/pizza/pizza-card"
 import { CustomizeModal } from "@/components/pizza/customize-modal"
@@ -13,13 +13,37 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 
 export function PopularPizzas() {
+  const [popularPizzas, setPopularPizzas] = useState<Pizza[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedPizza, setSelectedPizza] = useState<Pizza | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  
   const dispatch = useAppDispatch()
   const { toast } = useToast()
 
-  // Get only popular pizzas (max 3)
-  const popularPizzas = pizzas.filter((p) => p.popular).slice(0, 3)
+  useEffect(() => {
+    async function fetchPopular() {
+      try {
+        // Filtramos directamente en la consulta de PocketBase
+        const records = await pb.collection("pizzas").getList(1, 3, {
+          filter: 'popular = true && available = true',
+        })
+
+        const formatted = records.items.map(record => ({
+          ...record,
+          id: record.id,
+          image: record.image ? pb.files.getUrl(record, record.image) : "/placeholder.svg",
+        })) as unknown as Pizza[]
+
+        setPopularPizzas(formatted)
+      } catch (error) {
+        console.error("Error al cargar pizzas populares:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPopular()
+  }, [])
 
   const handleCustomize = (pizza: Pizza) => {
     setSelectedPizza(pizza)
@@ -37,25 +61,14 @@ export function PopularPizzas() {
     dispatch({ type: "ADD_TO_CART", payload: cartItem })
     toast({
       title: "Added to cart",
-      description: `${pizza.name} has been added to your cart.`,
+      description: `${pizza.name} has been added.`,
     })
   }
 
-  const handleAddToCart = (pizza: Pizza, selectedToppings: Topping[], quantity: number) => {
-    const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0)
-    const cartItem = {
-      id: `${pizza.id}-${Date.now()}`,
-      pizza,
-      quantity,
-      selectedToppings,
-      totalPrice: (pizza.price + toppingsPrice) * quantity,
-    }
-    dispatch({ type: "ADD_TO_CART", payload: cartItem })
-    toast({
-      title: "Added to cart",
-      description: `${pizza.name} with ${selectedToppings.length} extra toppings has been added.`,
-    })
-  }
+  if (loading) return null; // O un pequeño spinner
+
+  // Si no hay nada en PocketBase, no mostramos la sección
+  if (popularPizzas.length === 0) return null;
 
   return (
     <section className="py-16 bg-muted/30">
@@ -94,7 +107,6 @@ export function PopularPizzas() {
         pizza={selectedPizza}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onAddToCart={handleAddToCart}
       />
     </section>
   )

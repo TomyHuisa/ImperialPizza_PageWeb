@@ -1,12 +1,13 @@
 "use client"
 
 import { createContext, useContext, useReducer, useEffect, type ReactNode, type Dispatch } from "react"
-import { pizzas as initialPizzas, drinks as initialDrinks, desserts as initialDesserts } from "@/lib/data/pizzas"
+import { pb } from "@/lib/data/pocketbase"
 
 interface StockState {
   pizzaStock: Record<string, number>
   drinkStock: Record<string, number>
   dessertStock: Record<string, number>
+  isLoading: boolean
 }
 
 type StockAction =
@@ -16,13 +17,16 @@ type StockAction =
   | { type: "INCREASE_DRINK_STOCK"; payload: { id: string; quantity: number } }
   | { type: "DECREASE_DESSERT_STOCK"; payload: { id: string; quantity: number } }
   | { type: "INCREASE_DESSERT_STOCK"; payload: { id: string; quantity: number } }
-  | { type: "LOAD_FROM_STORAGE"; payload: StockState }
+  | { type: "LOAD_FROM_DATABASE"; payload: Omit<StockState, "isLoading"> }
+  | { type: "SET_LOADING"; payload: boolean }
 
-const getInitialState = (): StockState => ({
-  pizzaStock: Object.fromEntries(initialPizzas.map((p) => [p.id, p.stock])),
-  drinkStock: Object.fromEntries(initialDrinks.map((d) => [d.id, d.stock])),
-  dessertStock: Object.fromEntries(initialDesserts.map((d) => [d.id, d.stock])),
-})
+// Inicializamos vacío, se llenará desde PocketBase
+const initialState: StockState = {
+  pizzaStock: {},
+  drinkStock: {},
+  dessertStock: {},
+  isLoading: true,
+}
 
 function stockReducer(state: StockState, action: StockAction): StockState {
   switch (action.type) {
@@ -74,8 +78,16 @@ function stockReducer(state: StockState, action: StockAction): StockState {
           [action.payload.id]: (state.dessertStock[action.payload.id] || 0) + action.payload.quantity,
         },
       }
-    case "LOAD_FROM_STORAGE":
-      return action.payload
+    case "LOAD_FROM_DATABASE":
+      return {
+        ...state,
+        pizzaStock: action.payload.pizzaStock,
+        drinkStock: action.payload.drinkStock,
+        dessertStock: action.payload.dessertStock,
+        isLoading: false,
+      }
+    case "SET_LOADING":
+      return { ...state, isLoading: action.payload }
     default:
       return state
   }
@@ -85,23 +97,43 @@ const StockStateContext = createContext<StockState | null>(null)
 const StockDispatchContext = createContext<Dispatch<StockAction> | null>(null)
 
 export function StockProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(stockReducer, getInitialState())
+  const [state, dispatch] = useReducer(stockReducer, initialState)
 
   useEffect(() => {
-    const saved = localStorage.getItem("imperial-stock")
-    if (saved) {
+    const fetchStock = async () => {
+      dispatch({ type: "SET_LOADING", payload: true })
       try {
-        const parsed = JSON.parse(saved)
-        dispatch({ type: "LOAD_FROM_STORAGE", payload: parsed })
-      } catch {
-        // Use initial state
+        // Ejecutamos las tres llamadas en paralelo para mayor velocidad
+        const [pizzas, drinks, desserts] = await Promise.all([
+          pb.collection("pizzas").getFullList(),
+          pb.collection("drinks").getFullList(),
+          pb.collection("desserts").getFullList()
+        ])
+
+        const pizzaStockObj = Object.fromEntries(pizzas.map((p) => [p.id, p.stock]))
+        const drinkStockObj = Object.fromEntries(drinks.map((d) => [d.id, d.stock]))
+        const dessertStockObj = Object.fromEntries(desserts.map((d) => [d.id, d.stock]))
+
+        dispatch({
+          type: "LOAD_FROM_DATABASE",
+          payload: {
+            pizzaStock: pizzaStockObj,
+            drinkStock: drinkStockObj,
+            dessertStock: dessertStockObj,
+          },
+        })
+      } catch (error) {
+        console.error("Failed to load stock from PocketBase:", error)
+        dispatch({ type: "SET_LOADING", payload: false })
       }
     }
+
+    fetchStock()
   }, [])
 
-  useEffect(() => {
-    localStorage.setItem("imperial-stock", JSON.stringify(state))
-  }, [state])
+  // Ya no usamos localStorage aquí porque PocketBase es la única fuente de verdad
+  // Si necesitas sincronizar los cambios de stock devuelta a la BD, deberás hacer llamadas 
+  // a pb.collection('pizzas').update(...) cuando ocurra una compra.
 
   return (
     <StockStateContext.Provider value={state}>

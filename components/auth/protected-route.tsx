@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Shield, Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/store/auth-store" // Importamos el store real
 import type { User } from "@/lib/types"
 
 interface ProtectedRouteProps {
@@ -15,36 +15,38 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const router = useRouter()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
-  const [currentRole, setCurrentRole] = useState<User["role"] | null>(null)
 
   useEffect(() => {
-    // Check role from localStorage or URL params for demo purposes
-    const urlParams = new URLSearchParams(window.location.search)
-    const roleFromUrl = urlParams.get("role") as User["role"] | null
-    const savedRole = localStorage.getItem("imperial-user-role") as User["role"] | null
-
-    const role = roleFromUrl || savedRole || "customer"
-
-    if (roleFromUrl) {
-      localStorage.setItem("imperial-user-role", roleFromUrl)
+  if (!isLoading) {
+    if (!isAuthenticated || !user) {
+      setIsAuthorized(false)
+      setTimeout(() => router.push("/login"), 3000)
+      return
     }
 
-    setCurrentRole(role)
-    setIsAuthorized(allowedRoles.includes(role))
-  }, [allowedRoles])
+    // MODIFICACIÓN: Si es admin, siempre tiene permiso (true)
+    // De lo contrario, comprobamos si su rol está en la lista permitida
+    const hasPermission = user.role === "admin" || allowedRoles.includes(user.role)
+    
+    setIsAuthorized(hasPermission)
+  }
+}, [isLoading, isAuthenticated, user, allowedRoles, router])
 
-  if (isAuthorized === null) {
+  // Estado de carga (Verificando sesión en PocketBase)
+  if (isLoading || isAuthorized === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Verifying access...</p>
+          <p className="text-muted-foreground">Verifying secure access...</p>
         </motion.div>
       </div>
     )
   }
 
+  // Pantalla de Acceso Denegado (Si intenta entrar a un rol que no es suyo)
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -58,21 +60,20 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           </div>
           <h1 className="font-serif text-2xl font-bold text-foreground mb-2">Access Restricted</h1>
           <p className="text-muted-foreground mb-6">
-            This area is restricted to authorized staff only.
-            {currentRole && (
-              <span className="block mt-2 text-sm">
-                Your current role: <span className="font-medium capitalize">{currentRole}</span>
-              </span>
-            )}
+            Usted no tiene permisos para acceder a esta sección. 
+            Esta área es exclusiva para personal de: <span className="font-bold capitalize">{allowedRoles.join(", ")}</span>.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Access with: <code className="bg-muted px-1 py-0.5 rounded">?role=kitchen</code> or{" "}
-            <code className="bg-muted px-1 py-0.5 rounded">?role=driver</code>
-          </p>
+          <button 
+            onClick={() => router.push("/")}
+            className="text-primary hover:underline font-medium"
+          >
+            Volver al Inicio
+          </button>
         </motion.div>
       </div>
     )
   }
 
+  // Si todo está bien, mostramos el contenido
   return <>{children}</>
 }

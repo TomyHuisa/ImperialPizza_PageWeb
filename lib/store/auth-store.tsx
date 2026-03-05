@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, type ReactNode, type Dispatch } from "react"
 import type { AuthUser } from "@/lib/types"
-import { demoUsers } from "@/lib/data/users"
+import { pb } from "@/lib/data/pocketbase" // Asegúrate que esta ruta sea correcta (@/lib/pocketbase)
 
 interface AuthState {
   user: AuthUser | null
@@ -48,27 +48,28 @@ const AuthDispatchContext = createContext<Dispatch<AuthAction> | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
+  // Sincronizar estado inicial con PocketBase al cargar la app
   useEffect(() => {
-    const savedUser = localStorage.getItem("imperial-auth-user")
-    if (savedUser) {
+    const initAuth = async () => {
       try {
-        const user = JSON.parse(savedUser)
-        dispatch({ type: "LOAD_FROM_STORAGE", payload: user })
-      } catch {
+        if (pb.authStore.isValid && pb.authStore.model) {
+          const user: AuthUser = {
+            id: pb.authStore.model.id,
+            name: pb.authStore.model.name,
+            email: pb.authStore.model.email,
+            role: pb.authStore.model.role,
+            points: pb.authStore.model.points || 0,
+          }
+          dispatch({ type: "LOAD_FROM_STORAGE", payload: user })
+        } else {
+          dispatch({ type: "LOAD_FROM_STORAGE", payload: null })
+        }
+      } catch (error) {
         dispatch({ type: "LOAD_FROM_STORAGE", payload: null })
       }
-    } else {
-      dispatch({ type: "SET_LOADING", payload: false })
-    }
+    };
+    initAuth();
   }, [])
-
-  useEffect(() => {
-    if (state.user) {
-      localStorage.setItem("imperial-auth-user", JSON.stringify(state.user))
-    } else if (!state.isLoading) {
-      localStorage.removeItem("imperial-auth-user")
-    }
-  }, [state.user, state.isLoading])
 
   return (
     <AuthStateContext.Provider value={state}>
@@ -79,17 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuthState() {
   const context = useContext(AuthStateContext)
-  if (!context) {
-    throw new Error("useAuthState must be used within AuthProvider")
-  }
+  if (!context) throw new Error("useAuthState must be used within AuthProvider")
   return context
 }
 
 export function useAuthDispatch() {
   const context = useContext(AuthDispatchContext)
-  if (!context) {
-    throw new Error("useAuthDispatch must be used within AuthProvider")
-  }
+  if (!context) throw new Error("useAuthDispatch must be used within AuthProvider")
   return context
 }
 
@@ -97,23 +94,32 @@ export function useAuth() {
   const state = useAuthState()
   const dispatch = useAuthDispatch()
 
-  const login = (email: string, password: string): { success: boolean; error?: string } => {
-    const user = demoUsers.find((u) => u.email === email && u.password === password)
-    if (user) {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // LLAMADA REAL A POCKETBASE
+      const authData = await pb.collection("users").authWithPassword(email, password)
+      
       const authUser: AuthUser = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        points: user.points,
+        id: authData.record.id,
+        name: authData.record.name,
+        email: authData.record.email,
+        role: authData.record.role,
+        points: authData.record.points || 0,
       }
+
       dispatch({ type: "LOGIN", payload: authUser })
       return { success: true }
+    } catch (error: any) {
+      console.error("Login Error:", error)
+      return { 
+        success: false, 
+        error: error.message || "Email o contraseña incorrectos" 
+      }
     }
-    return { success: false, error: "Invalid email or password" }
   }
 
   const logout = () => {
+    pb.authStore.clear()
     dispatch({ type: "LOGOUT" })
   }
 
