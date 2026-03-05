@@ -161,7 +161,6 @@ const AppDispatchContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$
 function AppStoreProvider({ children }) {
     _s();
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useReducer"])(appReducer, initialState);
-    // Cargar carrito desde localStorage al iniciar
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             const savedCart = localStorage.getItem("imperial-pizzeria-cart");
@@ -180,7 +179,6 @@ function AppStoreProvider({ children }) {
             }
         }
     }["AppStoreProvider.useEffect"], []);
-    // Guardar carrito automáticamente cuando cambie
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             localStorage.setItem("imperial-pizzeria-cart", JSON.stringify(state.cart));
@@ -188,7 +186,6 @@ function AppStoreProvider({ children }) {
     }["AppStoreProvider.useEffect"], [
         state.cart
     ]);
-    // Sincronizar usuario desde PocketBase AuthStore
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             if (__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.model) {
@@ -207,6 +204,57 @@ function AppStoreProvider({ children }) {
             }
         }
     }["AppStoreProvider.useEffect"], []);
+    // Cargar pedido activo desde la BD si existe
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "AppStoreProvider.useEffect": ()=>{
+            const loadActiveOrder = {
+                "AppStoreProvider.useEffect.loadActiveOrder": async ()=>{
+                    if (!state.user) return;
+                    try {
+                        const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").getList(1, 1, {
+                            filter: `users = "${state.user.id}" && status != "delivered" && status != "cancelled"`,
+                            sort: "-created"
+                        });
+                        if (orders.items.length > 0) {
+                            dispatch({
+                                type: "SET_ACTIVE_ORDER",
+                                payload: orders.items[0]
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error loading active order:", error);
+                    }
+                }
+            }["AppStoreProvider.useEffect.loadActiveOrder"];
+            loadActiveOrder();
+        }
+    }["AppStoreProvider.useEffect"], [
+        state.user
+    ]);
+    // Suscripción al pedido activo
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "AppStoreProvider.useEffect": ()=>{
+            if (!state.activeOrder) return;
+            if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) return;
+            const unsubscribe = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe(state.activeOrder.id, {
+                "AppStoreProvider.useEffect.unsubscribe": (e)=>{
+                    if (e.action === "update") {
+                        dispatch({
+                            type: "UPDATE_ORDER",
+                            payload: e.record
+                        });
+                    }
+                }
+            }["AppStoreProvider.useEffect.unsubscribe"]);
+            return ({
+                "AppStoreProvider.useEffect": ()=>{
+                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").unsubscribe(state.activeOrder.id);
+                }
+            })["AppStoreProvider.useEffect"];
+        }
+    }["AppStoreProvider.useEffect"], [
+        state.activeOrder
+    ]);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStateContext.Provider, {
         value: state,
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppDispatchContext.Provider, {
@@ -214,16 +262,16 @@ function AppStoreProvider({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/lib/store/app-store.tsx",
-            lineNumber: 137,
+            lineNumber: 163,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/lib/store/app-store.tsx",
-        lineNumber: 136,
+        lineNumber: 162,
         columnNumber: 5
     }, this);
 }
-_s(AppStoreProvider, "s3jE+e7wLGXN/2uWqdAG2uRSMfA=");
+_s(AppStoreProvider, "pVdZ2vZIFi1rNSxR7NBIbe5q6YM=");
 _c = AppStoreProvider;
 function useAppState() {
     _s1();
@@ -249,12 +297,40 @@ function useAppStore() {
             payload: true
         });
         try {
-            // Sincronización Real con PocketBase
-            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").create({
-                ...orderData,
+            // Deducir puntos usados
+            if (orderData.pointsUsed > 0 && state.user) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
+                    points: (state.user.points || 0) - orderData.pointsUsed
+                });
+                dispatch({
+                    type: "USE_POINTS",
+                    payload: orderData.pointsUsed
+                });
+            }
+            const recordData = {
                 status: "pending",
-                user: state.user?.id
-            });
+                orderMode: orderData.orderMode,
+                users: state.user?.id,
+                items: JSON.stringify(orderData.items),
+                totalPrice: orderData.totalPrice,
+                deliveryAddress: orderData.deliveryAddress,
+                customerName: orderData.customerName,
+                customerPhone: orderData.customerPhone,
+                coordinates: JSON.stringify(orderData.coordinates),
+                paymentMethod: orderData.paymentMethod,
+                estimatedDelivery: orderData.estimatedDelivery
+            };
+            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").create(recordData);
+            // Añadir puntos ganados
+            if (orderData.pointsEarned > 0 && state.user) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
+                    points: (state.user.points || 0) + orderData.pointsEarned
+                });
+                dispatch({
+                    type: "ADD_POINTS",
+                    payload: orderData.pointsEarned
+                });
+            }
             const newOrder = {
                 ...orderData,
                 id: record.id,

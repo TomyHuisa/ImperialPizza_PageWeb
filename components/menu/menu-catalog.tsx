@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, Wine, Cake, Loader2 } from "lucide-react"
 import type { Pizza, Topping, Drink, Dessert } from "@/lib/types"
-import { pb } from "@/lib/data/pocketbase" // Importamos PocketBase
+import { pb } from "@/lib/data/pocketbase"
 import { useAppDispatch } from "@/lib/store/app-store"
 import { PizzaCard } from "@/components/pizza/pizza-card"
 import { CustomizeModal } from "@/components/pizza/customize-modal"
@@ -32,6 +32,7 @@ export function MenuCatalog() {
   const [pizzas, setPizzas] = useState<Pizza[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [desserts, setDesserts] = useState<Dessert[]>([])
+  const [toppings, setToppings] = useState<Topping[]>([])
   const [loading, setLoading] = useState(true)
 
   const dispatch = useAppDispatch()
@@ -42,10 +43,11 @@ export function MenuCatalog() {
     async function loadMenu() {
       try {
         setLoading(true)
-        const [pizzaRes, drinkRes, dessertRes] = await Promise.all([
+        const [pizzaRes, drinkRes, dessertRes, toppingRes] = await Promise.all([
           pb.collection("pizzas").getFullList({ sort: "-created" }),
           pb.collection("drinks").getFullList({ sort: "-created" }),
           pb.collection("desserts").getFullList({ sort: "-created" }),
+          pb.collection("toppings").getFullList({ sort: "name" }),
         ])
 
         // Formateamos las pizzas para incluir la URL real de la imagen de PocketBase
@@ -67,9 +69,17 @@ export function MenuCatalog() {
           image: record.image ? pb.files.getUrl(record, record.image) : "/placeholder.svg",
         })) as unknown as Dessert[]
 
+        const formattedToppings = toppingRes.map(record => ({
+          id: record.id,
+          name: record.name,
+          price: record.price,
+          category: record.category,
+        })) as Topping[]
+
         setPizzas(formattedPizzas)
         setDrinks(formattedDrinks)
         setDesserts(formattedDesserts)
+        setToppings(formattedToppings)
       } catch (error) {
         console.error("Error cargando el menú:", error)
         toast({
@@ -93,6 +103,26 @@ export function MenuCatalog() {
   const handleCustomize = (pizza: Pizza) => {
     setSelectedPizza(pizza)
     setIsModalOpen(true)
+  }
+
+  const handleAddToCart = (pizza: Pizza, toppings: Topping[], quantity: number) => {
+    // Calcular precio total: pizza base + toppings
+    const toppingsPrice = toppings.reduce((sum, t) => sum + t.price, 0)
+    const totalPrice = (pizza.price + toppingsPrice) * quantity
+
+    const cartItem = {
+      id: `${pizza.id}-${Date.now()}`,
+      pizza,
+      quantity,
+      selectedToppings: toppings,
+      totalPrice,
+    }
+
+    dispatch({ type: "ADD_TO_CART", payload: cartItem })
+    toast({
+      title: "Added to cart",
+      description: `${quantity}x ${pizza.name} with custom toppings`,
+    })
   }
 
   const handleQuickAdd = (pizza: Pizza) => {
@@ -246,6 +276,8 @@ export function MenuCatalog() {
         pizza={selectedPizza}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onAddToCart={handleAddToCart}
+        toppings={toppings}
       />
     </div>
   )

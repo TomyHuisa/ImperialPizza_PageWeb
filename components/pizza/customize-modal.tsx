@@ -1,202 +1,192 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import Image from "next/image"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Minus } from "lucide-react"
-import { createPortal } from "react-dom"
+import { X, Minus, Plus, Pizza, Check } from "lucide-react"
 import type { Pizza, Topping } from "@/lib/types"
-import { toppings } from "@/lib/data/pizzas"
 import { Button } from "@/components/ui/button"
-import { AnimatedCheckbox } from "@/components/ui/animated-checkbox"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface CustomizeModalProps {
   pizza: Pizza | null
   isOpen: boolean
   onClose: () => void
-  onAddToCart: (pizza: Pizza, selectedToppings: Topping[], quantity: number) => void
+  onAddToCart: (pizza: Pizza, toppings: Topping[], quantity: number) => void
+  toppings: Topping[]
 }
 
-const MAX_TOPPINGS = 3
-
-export function CustomizeModal({ pizza, isOpen, onClose, onAddToCart }: CustomizeModalProps) {
+export function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }: CustomizeModalProps) {
   const [selectedToppings, setSelectedToppings] = useState<Topping[]>([])
   const [quantity, setQuantity] = useState(1)
-  const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setSelectedToppings([])
+    setQuantity(1)
+  }, [pizza])
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedToppings([])
-      setQuantity(1)
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-    }
-  }, [isOpen])
+  if (!pizza) return null
 
-  // Watch for topping limit
-  useEffect(() => {
-    if (selectedToppings.length > MAX_TOPPINGS) {
-      toast({
-        title: "Maximum toppings reached",
-        description: `You can only select up to ${MAX_TOPPINGS} extra toppings.`,
-        variant: "destructive",
-      })
-      setSelectedToppings((prev) => prev.slice(0, MAX_TOPPINGS))
-    }
-  }, [selectedToppings, toast])
-
-  const totalPrice = useMemo(() => {
-    if (!pizza) return 0
-    const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0)
-    return (pizza.price + toppingsPrice) * quantity
-  }, [pizza, selectedToppings, quantity])
-
-  const handleToppingToggle = (topping: Topping, checked: boolean) => {
-    if (checked) {
-      if (selectedToppings.length >= MAX_TOPPINGS) {
-        toast({
-          title: "Maximum toppings reached",
-          description: `You can only select up to ${MAX_TOPPINGS} extra toppings.`,
-          variant: "destructive",
-        })
-        return
+  const toggleTopping = (topping: Topping) => {
+    setSelectedToppings(prev => {
+      const isSelected = prev.some(t => t.id === topping.id)
+      if (isSelected) {
+        return prev.filter(t => t.id !== topping.id)
+      } else {
+        if (prev.length >= 3) {
+          toast({
+            title: "Límite de toppings",
+            description: "Solo puedes seleccionar hasta 3 toppings extra.",
+            variant: "destructive",
+          })
+          return prev
+        }
+        return [...prev, topping]
       }
-      setSelectedToppings((prev) => [...prev, topping])
-    } else {
-      setSelectedToppings((prev) => prev.filter((t) => t.id !== topping.id))
-    }
+    })
   }
+
+  // Agrupar toppings por categoría
+  const toppingsByCategory = toppings.reduce((acc, topping) => {
+    if (!acc[topping.category]) acc[topping.category] = []
+    acc[topping.category].push(topping)
+    return acc
+  }, {} as Record<string, Topping[]>)
+
+  const categoryNames: Record<string, string> = {
+    meat: "Carnes",
+    vegetable: "Verduras",
+    cheese: "Quesos",
+    sauce: "Salsas",
+  }
+
+  const toppingsTotal = selectedToppings.reduce((sum, t) => sum + t.price, 0)
+  const totalPrice = (pizza.price + toppingsTotal) * quantity
 
   const handleAddToCart = () => {
-    if (pizza) {
-      onAddToCart(pizza, selectedToppings, quantity)
-      onClose()
-    }
+    onAddToCart(pizza, selectedToppings, quantity)
+    onClose()
   }
 
-  if (!mounted) return null
-
-  const toppingsByCategory = {
-    meat: toppings.filter((t) => t.category === "meat"),
-    vegetable: toppings.filter((t) => t.category === "vegetable"),
-    cheese: toppings.filter((t) => t.category === "cheese"),
-  }
-
-  const modalContent = (
+  return (
     <AnimatePresence>
-      {isOpen && pizza && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/50 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && onClose()}
-        >
+      {isOpen && (
+        <>
           <motion.div
-            initial={{ scale: 0.9, y: 20, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-card shadow-2xl"
-          >
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-card/80 backdrop-blur hover:bg-card transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-50"
+          />
 
-            <div className="flex flex-col md:flex-row max-h-[90vh]">
-              {/* Image */}
-              <div className="relative w-full md:w-2/5 aspect-square md:aspect-auto">
-                <Image src={pizza.image || "/placeholder.svg"} alt={pizza.name} fill className="object-cover" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-xl shadow-xl z-50 border border-border max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-card">
+              <div className="flex items-center gap-2">
+                <Pizza className="h-5 w-5 text-primary" />
+                <h2 className="font-serif text-lg font-bold">Personalizar {pizza.name}</h2>
+              </div>
+              <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Precio base */}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Precio base:</span>
+                <span className="font-medium">${pizza.price.toFixed(2)}</span>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 p-6 overflow-y-auto">
-                <h2 className="font-serif text-2xl font-bold text-foreground mb-2">{pizza.name}</h2>
-                <p className="text-muted-foreground mb-6">{pizza.description}</p>
-
-                {/* Toppings */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-foreground mb-3">
-                    Extra Toppings
-                    <span className="text-sm font-normal text-muted-foreground ml-2">
-                      ({selectedToppings.length}/{MAX_TOPPINGS})
-                    </span>
-                  </h3>
-
-                  {Object.entries(toppingsByCategory).map(([category, items]) => (
-                    <div key={category} className="mb-4">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                        {category}
-                      </h4>
-                      <div className="space-y-1">
-                        {items.map((topping) => (
-                          <AnimatedCheckbox
+              {/* Toppings por categoría */}
+              <div>
+                <h3 className="font-medium mb-2">Toppings extra (máx. 3)</h3>
+                {Object.entries(toppingsByCategory).map(([category, cats]) => (
+                  <div key={category} className="mb-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                      {categoryNames[category] || category}
+                    </h4>
+                    <div className="space-y-2">
+                      {cats.map((topping) => {
+                        const isSelected = selectedToppings.some(t => t.id === topping.id)
+                        return (
+                          <button
                             key={topping.id}
-                            checked={selectedToppings.some((t) => t.id === topping.id)}
-                            onChange={(checked) => handleToppingToggle(topping, checked)}
-                            disabled={
-                              !selectedToppings.some((t) => t.id === topping.id) &&
-                              selectedToppings.length >= MAX_TOPPINGS
-                            }
-                            label={topping.name}
-                            sublabel={`+$${topping.price.toFixed(2)}`}
-                          />
-                        ))}
-                      </div>
+                            onClick={() => toggleTopping(topping)}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2 rounded-lg border transition-colors",
+                              isSelected
+                                ? "border-primary bg-primary/10"
+                                : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "w-5 h-5 rounded border flex items-center justify-center",
+                                isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+                              )}>
+                                {isSelected && <Check className="h-3 w-3 text-white" />}
+                              </div>
+                              <span>{topping.name}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">+${topping.price.toFixed(2)}</span>
+                          </button>
+                        )
+                      })}
                     </div>
-                  ))}
-                </div>
-
-                {/* Quantity */}
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-medium text-foreground">Quantity</span>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                      className="h-8 w-8"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center font-semibold">{quantity}</span>
-                    <Button variant="outline" size="icon" onClick={() => setQuantity(quantity + 1)} className="h-8 w-8">
-                      <Plus className="h-4 w-4" />
-                    </Button>
                   </div>
-                </div>
+                ))}
+              </div>
 
-                {/* Add to Cart */}
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              {/* Cantidad */}
+              <div>
+                <h3 className="font-medium mb-2">Cantidad</h3>
+                <div className="flex items-center gap-3">
                   <Button
-                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                    onClick={handleAddToCart}
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
                   >
-                    Add to Cart - ${totalPrice.toFixed(2)}
+                    <Minus className="h-4 w-4" />
                   </Button>
-                </motion.div>
+                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="pt-4 border-t border-border">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span className="text-primary">${totalPrice.toFixed(2)}</span>
+                </div>
               </div>
             </div>
+
+            <div className="p-4 border-t border-border flex gap-2 sticky bottom-0 bg-card">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={handleAddToCart} className="flex-1 bg-primary hover:bg-primary/90">
+                Añadir al carrito
+              </Button>
+            </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   )
-
-  return createPortal(modalContent, document.body)
 }

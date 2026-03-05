@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Package, ChefHat, Bike, CheckCircle2, Clock, MapPin, XCircle, Store, Phone } from "lucide-react"
 import { useAppStore } from "@/lib/store/app-store"
 import { useStock } from "@/lib/store/stock-store"
-import { useWebSocket } from "@/hooks/use-websocket"
+import { pb } from "@/lib/data/pocketbase"
 import type { OrderStatus } from "@/lib/types"
 import { DeliveryMap } from "./delivery-map"
 import { cn } from "@/lib/utils"
@@ -31,7 +31,6 @@ const takeawayStatusSteps: { status: OrderStatus; label: string; icon: typeof Pa
 export function OrderTracker() {
   const { state, dispatch } = useAppStore()
   const { dispatch: stockDispatch } = useStock()
-  const { subscribe } = useWebSocket()
   const { toast } = useToast()
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [showPickupNotification, setShowPickupNotification] = useState(false)
@@ -39,11 +38,14 @@ export function OrderTracker() {
   const order = state.activeOrder
 
   useEffect(() => {
-    const unsubOrderUpdate = subscribe("order-update", (msg) => {
-      if (msg.type === "order-update" && order && msg.payload.id === order.id) {
-        dispatch({ type: "UPDATE_ORDER", payload: { ...order, ...msg.payload } })
+    if (!order) return
 
-        if (msg.payload.status === "ready" && order.orderMode === "takeaway") {
+    const unsubscribe = pb.collection("orders").subscribe(order.id, (e) => {
+      if (e.action === "update") {
+        const updatedOrder = e.record as Order
+        dispatch({ type: "UPDATE_ORDER", payload: updatedOrder })
+
+        if (updatedOrder.status === "ready" && order.orderMode === "takeaway") {
           setShowPickupNotification(true)
           toast({
             title: "Your order is ready!",
@@ -53,22 +55,14 @@ export function OrderTracker() {
       }
     })
 
-    const unsubDriverLocation = subscribe("driver-location", (msg) => {
-      if (msg.type === "driver-location" && order && msg.payload.orderId === order.id) {
-        setDriverLocation({ lat: msg.payload.lat, lng: msg.payload.lng })
-      }
-    })
-
     return () => {
-      unsubOrderUpdate()
-      unsubDriverLocation()
+      pb.collection("orders").unsubscribe(order.id)
     }
-  }, [subscribe, order, dispatch, toast])
+  }, [order, dispatch, toast])
 
   const handleCancelOrder = () => {
     if (!order) return
 
-    // Restock items
     order.items.forEach((item) => {
       stockDispatch({
         type: "INCREASE_PIZZA_STOCK",
@@ -76,7 +70,8 @@ export function OrderTracker() {
       })
     })
 
-    // Update order status
+    pb.collection("orders").update(order.id, { status: "cancelled" })
+
     const cancelledOrder = { ...order, status: "cancelled" as OrderStatus }
     dispatch({ type: "UPDATE_ORDER", payload: cancelledOrder })
     dispatch({ type: "SET_ACTIVE_ORDER", payload: null })
@@ -146,7 +141,6 @@ export function OrderTracker() {
         )}
       </AnimatePresence>
 
-      {/* Cancelled Order */}
       {order.status === "cancelled" && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -162,7 +156,6 @@ export function OrderTracker() {
       )}
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Timeline */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -230,15 +223,16 @@ export function OrderTracker() {
                 {order.orderMode === "takeaway" ? "Estimated Pickup" : "Estimated Delivery"}
               </p>
               <p className="font-medium text-foreground">
-                {new Date(order.estimatedDelivery).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {order.estimatedDelivery
+                  ? new Date(order.estimatedDelivery).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Calculating..."}
               </p>
             </div>
           </div>
 
-          {/* Order mode badge */}
           <div className="mt-4 p-3 rounded-lg bg-secondary/10 border border-secondary/30">
             <p className="text-sm text-secondary-foreground flex items-center gap-2">
               {order.orderMode === "takeaway" ? <Store className="h-4 w-4" /> : <Bike className="h-4 w-4" />}
@@ -247,7 +241,6 @@ export function OrderTracker() {
           </div>
         </motion.div>
 
-        {/* Map - Only for delivery orders */}
         {order.orderMode === "delivery" ? (
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -292,7 +285,6 @@ export function OrderTracker() {
         )}
       </div>
 
-      {/* Order Details */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -335,7 +327,6 @@ export function OrderTracker() {
             <span className="text-primary">${order.totalPrice.toFixed(2)}</span>
           </div>
         </div>
-        {/* Payment info */}
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-sm text-muted-foreground">Payment Method</p>
           <p className="font-medium text-foreground capitalize">

@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { memo, useState } from "react"
 import { motion } from "framer-motion"
-import { Clock, CheckCircle, ChefHat, User, MapPin } from "lucide-react"
+import { Clock, CheckCircle, ChefHat, User, MapPin, Store, Bike } from "lucide-react"
 import type { Order } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -20,12 +19,10 @@ export const KitchenOrderCard = memo(function KitchenOrderCard({ order, onMarkRe
 
   const handleMarkReady = async () => {
     setIsMarking(true)
-    // Optimistic UI update
     onMarkReady(order.id)
   }
 
   const timeElapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)
-
   const isUrgent = timeElapsed > 15
 
   return (
@@ -44,15 +41,20 @@ export const KitchenOrderCard = memo(function KitchenOrderCard({ order, onMarkRe
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm font-bold text-primary">#{order.id.slice(-6)}</span>
+          {order.orderMode === "takeaway" ? (
+            <Store className="h-4 w-4 text-blue-500" />
+          ) : (
+            <Bike className="h-4 w-4 text-purple-500" />
+          )}
           {isUrgent && (
             <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-destructive/10 text-destructive">
-              Urgent
+              Urgente
             </span>
           )}
         </div>
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
-          <span>{timeElapsed}m ago</span>
+          <span>{timeElapsed}m</span>
         </div>
       </div>
 
@@ -95,12 +97,12 @@ export const KitchenOrderCard = memo(function KitchenOrderCard({ order, onMarkRe
           {isMarking ? (
             <>
               <ChefHat className="h-4 w-4 mr-2 animate-pulse" />
-              Marking...
+              Marcando...
             </>
           ) : (
             <>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Ready
+              Marcar como listo
             </>
           )}
         </Button>

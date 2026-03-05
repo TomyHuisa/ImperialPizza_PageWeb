@@ -8,7 +8,6 @@ import { MapPin, Phone, User, CreditCard, ArrowLeft, Crown, Banknote, Truck, Sto
 import { useAppStore } from "@/lib/store/app-store"
 import { usePoints } from "@/lib/store/points-context"
 import { useStock } from "@/lib/store/stock-store"
-import { useWebSocket } from "@/hooks/use-websocket"
 import type { Order, OrderStatus } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,10 +22,9 @@ const POINTS_TO_DOLLAR_RATE = 2.00 / 25 // $0.08 por punto
 
 export function CheckoutForm() {
   const router = useRouter()
-  const { state, dispatch } = useAppStore()
+  const { state, dispatch, createOrder } = useAppStore()
   const { addPoints } = usePoints()
   const { dispatch: stockDispatch } = useStock()
-  const { simulateOrderProgress } = useWebSocket()
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -112,6 +110,7 @@ export function CheckoutForm() {
 
     setIsSubmitting(true)
 
+    // Descontar stock (esto se hará en la BD en un paso posterior, pero por ahora mantenemos la lógica local)
     state.cart.forEach((item) => {
       stockDispatch({
         type: "DECREASE_PIZZA_STOCK",
@@ -119,52 +118,49 @@ export function CheckoutForm() {
       })
     })
 
-    // Calculate total points used from all items
+    // Calcular total de puntos usados en todos los items
     const totalPointsUsed = state.cart.reduce((sum, item) => sum + (item.pointsUsed || 0), 0)
+    const discountApplied = calculateDiscountFromPoints(totalPointsUsed)
 
-    const order: Order = {
-      id: `ORD-${Date.now()}`,
+    // Construir objeto de pedido
+    const order: Omit<Order, "id" | "createdAt" | "updatedAt"> = {
       items: state.cart,
       status: "pending" as OrderStatus,
       totalPrice: total,
-      discountApplied: calculateDiscountFromPoints(totalPointsUsed),
+      discountApplied,
       pointsUsed: totalPointsUsed,
       pointsEarned,
       customerName: formData.name,
       customerPhone: formData.phone,
       deliveryAddress: orderMode === "delivery" ? formData.address : "Pickup at store",
-      coordinates: { lat: 40.7128 + Math.random() * 0.01, lng: -74.006 + Math.random() * 0.01 },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      coordinates: { lat: 40.7128 + Math.random() * 0.01, lng: -74.006 + Math.random() * 0.01 }, // Simulado, podrías usar geocoding real
       estimatedDelivery: new Date(Date.now() + (orderMode === "delivery" ? 45 : 20) * 60 * 1000).toISOString(),
       orderMode,
       paymentMethod,
       cardInfo: paymentMethod === "card" ? { lastFour: cardData.number.slice(-4) } : undefined,
     }
 
-    addPoints(pointsEarned)
+    // Llamar a createOrder del store para guardar en PocketBase
+    const result = await createOrder(order)
 
-    dispatch({ type: "ADD_ORDER", payload: order })
-    dispatch({ type: "SET_ACTIVE_ORDER", payload: order })
-    dispatch({ type: "CLEAR_CART" })
-
-    if (orderMode === "delivery") {
-      simulateOrderProgress(order)
+    if (result.success) {
+      toast({
+        title: "Order placed successfully!",
+        description:
+          order.orderMode === "takeaway"
+            ? `Your order #${result.order.id} will be ready for pickup soon.`
+            : `Your order #${result.order.id} is being prepared for delivery.`,
+      })
+      router.push("/track")
     } else {
-      // For takeaway, simulate faster preparation
-      simulateOrderProgress(order, true)
+      toast({
+        title: "Error placing order",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+      // Revertir stock si falla? (opcional, pero podrías llamar a stockDispatch con INCREASE)
+      setIsSubmitting(false)
     }
-
-    toast({
-      title: "Order placed successfully!",
-      description:
-        orderMode === "takeaway"
-          ? `Your order #${order.id} will be ready for pickup soon.`
-          : `Your order #${order.id} is being prepared for delivery.`,
-    })
-
-    setIsSubmitting(false)
-    router.push("/track")
   }
 
   if (state.cart.length === 0) {

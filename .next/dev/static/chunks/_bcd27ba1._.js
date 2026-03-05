@@ -190,6 +190,10 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 __turbopack_context__.s([
     "DriverStoreProvider",
     ()=>DriverStoreProvider,
+    "useDriverDispatch",
+    ()=>useDriverDispatch,
+    "useDriverState",
+    ()=>useDriverState,
     "useDriverStore",
     ()=>useDriverStore
 ]);
@@ -197,7 +201,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/data/pocketbase.ts [app-client] (ecmascript)");
 ;
-var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature();
+var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature(), _s3 = __turbopack_context__.k.signature();
 "use client";
 ;
 ;
@@ -206,37 +210,84 @@ const initialState = {
     activeDelivery: null,
     completedDeliveries: [],
     currentLocation: {
-        lat: -34.6037,
-        lng: -58.3816
+        lat: 40.7128,
+        lng: -74.006
     }
 };
 function driverReducer(state, action) {
     switch(action.type){
-        case "SET_INITIAL_DATA":
+        case "SET_AVAILABLE_ORDERS":
             return {
                 ...state,
-                availableOrders: action.payload.available,
-                activeDelivery: action.payload.active,
-                completedDeliveries: action.payload.completed
+                availableOrders: action.payload
             };
-        case "UPSERT_AVAILABLE":
+        case "ADD_AVAILABLE_ORDER":
+            {
+                if (state.availableOrders.some((o)=>o.id === action.payload.id)) return state;
+                return {
+                    ...state,
+                    availableOrders: [
+                        ...state.availableOrders,
+                        action.payload
+                    ]
+                };
+            }
+        case "ACCEPT_DELIVERY":
+            {
+                const order = state.availableOrders.find((o)=>o.id === action.payload);
+                if (!order) return state;
+                __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(order.id, {
+                    status: "out-for-delivery",
+                    driverId: __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.model?.id
+                });
+                return {
+                    ...state,
+                    availableOrders: state.availableOrders.filter((o)=>o.id !== action.payload),
+                    activeDelivery: {
+                        ...order,
+                        status: "out-for-delivery"
+                    }
+                };
+            }
+        case "COMPLETE_DELIVERY":
+            {
+                if (!state.activeDelivery || state.activeDelivery.id !== action.payload) return state;
+                __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(state.activeDelivery.id, {
+                    status: "delivered"
+                });
+                return {
+                    ...state,
+                    activeDelivery: null,
+                    completedDeliveries: [
+                        {
+                            ...state.activeDelivery,
+                            status: "delivered"
+                        },
+                        ...state.completedDeliveries
+                    ]
+                };
+            }
+        case "UPDATE_LOCATION":
             return {
                 ...state,
-                availableOrders: [
-                    ...state.availableOrders.filter((o)=>o.id !== action.payload.id),
-                    action.payload
-                ]
+                currentLocation: action.payload
             };
-        case "REMOVE_AVAILABLE":
-            return {
-                ...state,
-                availableOrders: state.availableOrders.filter((o)=>o.id !== action.payload)
-            };
-        case "SET_ACTIVE":
-            return {
-                ...state,
-                activeDelivery: action.payload
-            };
+        case "UPDATE_DELIVERY_ADDRESS":
+            {
+                if (!state.activeDelivery || state.activeDelivery.id !== action.payload.orderId) return state;
+                __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(action.payload.orderId, {
+                    deliveryAddress: action.payload.address,
+                    coordinates: JSON.stringify(action.payload.coordinates)
+                });
+                return {
+                    ...state,
+                    activeDelivery: {
+                        ...state.activeDelivery,
+                        deliveryAddress: action.payload.address,
+                        coordinates: action.payload.coordinates
+                    }
+                };
+            }
         default:
             return state;
     }
@@ -248,63 +299,57 @@ function DriverStoreProvider({ children }) {
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useReducer"])(driverReducer, initialState);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "DriverStoreProvider.useEffect": ()=>{
-            const driverId = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.model?.id;
-            if (!driverId) return;
-            const fetchOrders = {
-                "DriverStoreProvider.useEffect.fetchOrders": async ()=>{
+            const loadAvailable = {
+                "DriverStoreProvider.useEffect.loadAvailable": async ()=>{
                     try {
-                        const records = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").getFullList({
-                            filter: `orderMode = "delivery" && status != "cancelled"`
+                        const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").getFullList({
+                            filter: 'status = "ready" && orderMode = "delivery"'
                         });
-                        const orders = records;
                         dispatch({
-                            type: "SET_INITIAL_DATA",
-                            payload: {
-                                available: orders.filter({
-                                    "DriverStoreProvider.useEffect.fetchOrders": (o)=>o.status === "ready"
-                                }["DriverStoreProvider.useEffect.fetchOrders"]),
-                                active: orders.find({
-                                    "DriverStoreProvider.useEffect.fetchOrders": (o)=>o.status === "out-for-delivery" && o.driverId === driverId
-                                }["DriverStoreProvider.useEffect.fetchOrders"]) || null,
-                                completed: orders.filter({
-                                    "DriverStoreProvider.useEffect.fetchOrders": (o)=>o.status === "delivered" && o.driverId === driverId
-                                }["DriverStoreProvider.useEffect.fetchOrders"])
+                            type: "SET_AVAILABLE_ORDERS",
+                            payload: orders
+                        });
+                    } catch (error) {
+                        console.error("Error loading available orders:", error);
+                    }
+                }
+            }["DriverStoreProvider.useEffect.loadAvailable"];
+            loadAvailable();
+            let unsubscribe;
+            let intervalId;
+            const setupRealtime = {
+                "DriverStoreProvider.useEffect.setupRealtime": async ()=>{
+                    try {
+                        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) {
+                            throw new Error("No autenticado");
+                        }
+                        unsubscribe = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe("*", {
+                            "DriverStoreProvider.useEffect.setupRealtime": (e)=>{
+                                if (e.action === "update") {
+                                    const record = e.record;
+                                    if (record.status === "ready" && record.orderMode === "delivery") {
+                                        dispatch({
+                                            type: "ADD_AVAILABLE_ORDER",
+                                            payload: record
+                                        });
+                                    } else if (record.status === "out-for-delivery" || record.status === "delivered") {
+                                        // Recargar lista de disponibles
+                                        loadAvailable();
+                                    }
+                                }
                             }
-                        });
-                    } catch (e) {
-                        console.error(e);
+                        }["DriverStoreProvider.useEffect.setupRealtime"]);
+                    } catch (error) {
+                        console.warn("Error en suscripción de driver, usando polling:", error);
+                        intervalId = setInterval(loadAvailable, 5000);
                     }
                 }
-            }["DriverStoreProvider.useEffect.fetchOrders"];
-            fetchOrders();
-            __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe("*", {
-                "DriverStoreProvider.useEffect": (e)=>{
-                    const order = e.record;
-                    if (order.status === "ready") {
-                        dispatch({
-                            type: "UPSERT_AVAILABLE",
-                            payload: order
-                        });
-                    } else if (order.status === "out-for-delivery" && order.driverId === driverId) {
-                        dispatch({
-                            type: "SET_ACTIVE",
-                            payload: order
-                        });
-                        dispatch({
-                            type: "REMOVE_AVAILABLE",
-                            payload: order.id
-                        });
-                    } else {
-                        dispatch({
-                            type: "REMOVE_AVAILABLE",
-                            payload: order.id
-                        });
-                    }
-                }
-            }["DriverStoreProvider.useEffect"]);
+            }["DriverStoreProvider.useEffect.setupRealtime"];
+            setupRealtime();
             return ({
                 "DriverStoreProvider.useEffect": ()=>{
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").unsubscribe("*");
+                    if (unsubscribe) unsubscribe();
+                    if (intervalId) clearInterval(intervalId);
                 }
             })["DriverStoreProvider.useEffect"];
         }
@@ -316,46 +361,44 @@ function DriverStoreProvider({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/lib/store/driver-store.tsx",
-            lineNumber: 88,
+            lineNumber: 128,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/lib/store/driver-store.tsx",
-        lineNumber: 87,
+        lineNumber: 127,
         columnNumber: 5
     }, this);
 }
 _s(DriverStoreProvider, "bgCdjuTOmPdSBRwTap80EFd9Y3U=");
 _c = DriverStoreProvider;
-function useDriverStore() {
+function useDriverState() {
     _s1();
-    const state = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(DriverStateContext);
-    const dispatch = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(DriverDispatchContext);
-    if (!state || !dispatch) throw new Error("useDriverStore must be used within DriverStoreProvider");
-    const acceptOrder = async (orderId)=>{
-        const driverId = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.model?.id;
-        await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(orderId, {
-            status: "out-for-delivery",
-            driverId: driverId
-        });
-    };
-    const completeOrder = async (orderId)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(orderId, {
-            status: "delivered"
-        });
-        dispatch({
-            type: "SET_ACTIVE",
-            payload: null
-        });
-    };
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(DriverStateContext);
+    if (!context) throw new Error("useDriverState must be used within DriverStoreProvider");
+    return context;
+}
+_s1(useDriverState, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
+function useDriverDispatch() {
+    _s2();
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(DriverDispatchContext);
+    if (!context) throw new Error("useDriverDispatch must be used within DriverStoreProvider");
+    return context;
+}
+_s2(useDriverDispatch, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
+function useDriverStore() {
+    _s3();
     return {
-        state,
-        dispatch,
-        acceptOrder,
-        completeOrder
+        state: useDriverState(),
+        dispatch: useDriverDispatch()
     };
 }
-_s1(useDriverStore, "kTsY29gplUle/V4rxdYnJPedYSo=");
+_s3(useDriverStore, "ULeCDzTZwwFcG0CkkJyG2V6QI4E=", false, function() {
+    return [
+        useDriverState,
+        useDriverDispatch
+    ];
+});
 var _c;
 __turbopack_context__.k.register(_c, "DriverStoreProvider");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
@@ -976,16 +1019,21 @@ __turbopack_context__.s([
     ()=>DriverDashboard
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bike$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Bike$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/bike.js [app-client] (ecmascript) <export default as Bike>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/package.js [app-client] (ecmascript) <export default as Package>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/circle-check.js [app-client] (ecmascript) <export default as CheckCircle2>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/navigation.js [app-client] (ecmascript) <export default as Navigation>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-client] (ecmascript) <export default as MapPin>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$phone$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Phone$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/phone.js [app-client] (ecmascript) <export default as Phone>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/user.js [app-client] (ecmascript) <export default as User>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$clock$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Clock$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/clock.js [app-client] (ecmascript) <export default as Clock>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/circle-check.js [app-client] (ecmascript) <export default as CheckCircle2>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/package.js [app-client] (ecmascript) <export default as Package>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/navigation.js [app-client] (ecmascript) <export default as Navigation>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/store/driver-store.tsx [app-client] (ecmascript)");
-var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/button.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$driver$2f$driver$2d$map$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/driver/driver-map.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/button.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$hooks$2f$use$2d$toast$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/hooks/use-toast.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
@@ -994,376 +1042,950 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
+;
+;
 function DriverDashboardContent() {
     _s();
-    const { state, acceptOrder, completeOrder } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useDriverStore"])();
+    const { state, dispatch } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useDriverStore"])();
+    const { toast } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$hooks$2f$use$2d$toast$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"])();
+    const [earnings, setEarnings] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        today: 0,
+        deliveries: 0
+    });
+    // Actualizar ganancias cuando se completa una entrega
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "DriverDashboardContent.useEffect": ()=>{
+        // Podrías cargar desde localStorage o backend
+        }
+    }["DriverDashboardContent.useEffect"], []);
+    const handleAcceptDelivery = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "DriverDashboardContent.useCallback[handleAcceptDelivery]": (orderId)=>{
+            dispatch({
+                type: "ACCEPT_DELIVERY",
+                payload: orderId
+            });
+            toast({
+                title: "Entrega aceptada",
+                description: "Dirígete al restaurante para recoger el pedido."
+            });
+        }
+    }["DriverDashboardContent.useCallback[handleAcceptDelivery]"], [
+        dispatch,
+        toast
+    ]);
+    const handleCompleteDelivery = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "DriverDashboardContent.useCallback[handleCompleteDelivery]": ()=>{
+            if (!state.activeDelivery) return;
+            dispatch({
+                type: "COMPLETE_DELIVERY",
+                payload: state.activeDelivery.id
+            });
+            setEarnings({
+                "DriverDashboardContent.useCallback[handleCompleteDelivery]": (prev)=>({
+                        today: prev.today + 5.5,
+                        deliveries: prev.deliveries + 1
+                    })
+            }["DriverDashboardContent.useCallback[handleCompleteDelivery]"]);
+            toast({
+                title: "Entrega completada",
+                description: "¡Buen trabajo! +$5.50 ganados"
+            });
+        }
+    }["DriverDashboardContent.useCallback[handleCompleteDelivery]"], [
+        state.activeDelivery,
+        dispatch,
+        toast
+    ]);
+    const handleAddressUpdate = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "DriverDashboardContent.useCallback[handleAddressUpdate]": (address, coordinates)=>{
+            if (!state.activeDelivery) return;
+            dispatch({
+                type: "UPDATE_DELIVERY_ADDRESS",
+                payload: {
+                    orderId: state.activeDelivery.id,
+                    address,
+                    coordinates
+                }
+            });
+            toast({
+                title: "Dirección actualizada",
+                description: "La ubicación de entrega ha sido actualizada."
+            });
+        }
+    }["DriverDashboardContent.useCallback[handleAddressUpdate]"], [
+        state.activeDelivery,
+        dispatch,
+        toast
+    ]);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen bg-background",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("header", {
-                className: "sticky top-0 z-10 bg-card border-b border-border p-4 shadow-sm",
+                className: "sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur",
                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: "max-w-7xl mx-auto flex items-center justify-between",
-                    children: [
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
-                            className: "text-xl font-bold flex items-center gap-2",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bike$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Bike$3e$__["Bike"], {
-                                    className: "h-6 w-6 text-primary"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 19,
-                                    columnNumber: 13
-                                }, this),
-                                "Imperial Delivery"
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 18,
-                            columnNumber: 11
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "flex items-center gap-2",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "h-2 w-2 bg-green-500 rounded-full animate-pulse"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 23,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                    className: "text-sm font-medium text-muted-foreground",
-                                    children: "En línea"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 24,
-                                    columnNumber: 13
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 22,
-                            columnNumber: 11
-                        }, this)
-                    ]
-                }, void 0, true, {
-                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                    lineNumber: 17,
-                    columnNumber: 9
-                }, this)
-            }, void 0, false, {
-                fileName: "[project]/components/driver/driver-dashboard.tsx",
-                lineNumber: 16,
-                columnNumber: 7
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
-                className: "p-4 md:p-8 max-w-7xl mx-auto space-y-8",
-                children: state.activeDelivery ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
-                    className: "bg-primary/5 border-2 border-primary rounded-2xl p-6 shadow-lg",
-                    children: [
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "flex items-center justify-between mb-6",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                                    className: "text-2xl font-bold text-primary flex items-center gap-2",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__["Navigation"], {
-                                            className: "h-6 w-6"
+                    className: "container mx-auto px-4 py-4",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center justify-between",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-3",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bike$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Bike$3e$__["Bike"], {
+                                            className: "h-5 w-5 text-secondary"
                                         }, void 0, false, {
                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                            lineNumber: 35,
+                                            lineNumber: 70,
                                             columnNumber: 17
-                                        }, this),
-                                        "Entrega en Curso"
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 34,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                    className: "bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-mono",
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 69,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                                className: "font-serif text-xl font-bold text-foreground",
+                                                children: "Panel de Repartidor"
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 73,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "text-sm text-muted-foreground",
+                                                children: "Imperial Pizzeria"
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 74,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 72,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 68,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-3",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-sm",
                                     children: [
-                                        "#",
-                                        state.activeDelivery.id.slice(-6)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 38,
-                                    columnNumber: 15
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 33,
-                            columnNumber: 13
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "grid md:grid-cols-2 gap-8",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "space-y-4",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "bg-card p-4 rounded-xl border border-border",
-                                            children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                    className: "text-sm text-muted-foreground mb-1 font-semibold uppercase",
-                                                    children: "Cliente"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 46,
-                                                    columnNumber: 19
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                    className: "text-lg font-bold",
-                                                    children: state.activeDelivery.customerName
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 47,
-                                                    columnNumber: 19
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                    className: "text-primary font-medium",
-                                                    children: state.activeDelivery.customerPhone
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 48,
-                                                    columnNumber: 19
-                                                }, this)
-                                            ]
-                                        }, void 0, true, {
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "w-2 h-2 rounded-full bg-green-500"
+                                        }, void 0, false, {
                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                            lineNumber: 45,
+                                            lineNumber: 80,
                                             columnNumber: 17
                                         }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "bg-card p-4 rounded-xl border border-border",
-                                            children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                    className: "text-sm text-muted-foreground mb-1 font-semibold uppercase",
-                                                    children: "Dirección"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 51,
-                                                    columnNumber: 19
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                    className: "text-lg",
-                                                    children: state.activeDelivery.deliveryAddress
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 52,
-                                                    columnNumber: 19
-                                                }, this)
-                                            ]
-                                        }, void 0, true, {
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "text-muted-foreground",
+                                            children: "En línea"
+                                        }, void 0, false, {
                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                            lineNumber: 50,
-                                            columnNumber: 17
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
-                                            onClick: ()=>completeOrder(state.activeDelivery.id),
-                                            className: "w-full h-16 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-xl",
-                                            children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__["CheckCircle2"], {
-                                                    className: "h-6 w-6 mr-2"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 58,
-                                                    columnNumber: 19
-                                                }, this),
-                                                "ENTREGA COMPLETADA"
-                                            ]
-                                        }, void 0, true, {
-                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                            lineNumber: 54,
+                                            lineNumber: 81,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 44,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "h-[300px] rounded-xl overflow-hidden border border-border",
-                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$driver$2f$driver$2d$map$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DriverMap"], {
-                                        driverLocation: state.currentLocation,
-                                        deliveryLocation: state.activeDelivery.coordinates,
-                                        deliveryAddress: state.activeDelivery.deliveryAddress
-                                    }, void 0, false, {
-                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                        lineNumber: 64,
-                                        columnNumber: 17
-                                    }, this)
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 63,
+                                    lineNumber: 79,
                                     columnNumber: 15
                                 }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 43,
-                            columnNumber: 13
-                        }, this)
-                    ]
-                }, void 0, true, {
+                            }, void 0, false, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 78,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                        lineNumber: 67,
+                        columnNumber: 11
+                    }, this)
+                }, void 0, false, {
                     fileName: "[project]/components/driver/driver-dashboard.tsx",
-                    lineNumber: 32,
-                    columnNumber: 11
-                }, this) : /* PEDIDOS DISPONIBLES */ /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
-                    className: "space-y-4",
-                    children: [
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                            className: "text-xl font-bold flex items-center gap-2",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__["Package"], {
-                                    className: "h-6 w-6 text-muted-foreground"
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 76,
-                                    columnNumber: 15
-                                }, this),
-                                "Pedidos Listos para Retirar"
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 75,
-                            columnNumber: 13
-                        }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
+                    lineNumber: 66,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                lineNumber: 65,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "container mx-auto px-4 py-6",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "grid grid-cols-2 gap-4 mb-6",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                initial: {
+                                    y: 20,
+                                    opacity: 0
+                                },
+                                animate: {
+                                    y: 0,
+                                    opacity: 1
+                                },
+                                className: "bg-card border border-border rounded-xl p-4",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-muted-foreground mb-1",
+                                        children: "Ganancias hoy"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 96,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-2xl font-bold text-green-600",
+                                        children: [
+                                            "$",
+                                            earnings.today.toFixed(2)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 97,
+                                        columnNumber: 13
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 91,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                initial: {
+                                    y: 20,
+                                    opacity: 0
+                                },
+                                animate: {
+                                    y: 0,
+                                    opacity: 1
+                                },
+                                transition: {
+                                    delay: 0.1
+                                },
+                                className: "bg-card border border-border rounded-xl p-4",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-muted-foreground mb-1",
+                                        children: "Entregas"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 105,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-2xl font-bold text-foreground",
+                                        children: earnings.deliveries
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 106,
+                                        columnNumber: 13
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 99,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                        lineNumber: 90,
+                        columnNumber: 9
+                    }, this),
+                    state.activeDelivery ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                        initial: {
+                            y: 20,
+                            opacity: 0
+                        },
+                        animate: {
+                            y: 0,
+                            opacity: 1
+                        },
+                        className: "mb-6",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                className: "font-semibold text-lg text-foreground mb-4 flex items-center gap-2",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__["Navigation"], {
+                                        className: "h-5 w-5 text-secondary"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 114,
+                                        columnNumber: 15
+                                    }, this),
+                                    "Entrega activa"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 113,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "grid lg:grid-cols-2 gap-4",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "driver-map-container h-[400px] rounded-xl overflow-hidden border border-border",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$driver$2f$driver$2d$map$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DriverMap"], {
+                                            driverLocation: state.currentLocation,
+                                            deliveryLocation: state.activeDelivery.coordinates,
+                                            deliveryAddress: state.activeDelivery.deliveryAddress,
+                                            onAddressUpdate: handleAddressUpdate,
+                                            isEditable: true
+                                        }, void 0, false, {
+                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                            lineNumber: 120,
+                                            columnNumber: 17
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 119,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "bg-card border border-border rounded-xl p-6",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center justify-between mb-4",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "font-mono text-sm font-bold text-primary",
+                                                        children: [
+                                                            "#",
+                                                            state.activeDelivery.id.slice(-6)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 131,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "px-2 py-1 text-xs font-medium rounded-full bg-secondary/20 text-secondary-foreground",
+                                                        children: "En progreso"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 132,
+                                                        columnNumber: 19
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 130,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "space-y-3 mb-6",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center gap-3 p-3 rounded-lg bg-muted/50",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"], {
+                                                                className: "h-5 w-5 text-muted-foreground"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 139,
+                                                                columnNumber: 21
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "font-medium text-foreground",
+                                                                        children: state.activeDelivery.customerName
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 141,
+                                                                        columnNumber: 23
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "text-sm text-muted-foreground",
+                                                                        children: "Cliente"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 142,
+                                                                        columnNumber: 23
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 140,
+                                                                columnNumber: 21
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 138,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center gap-3 p-3 rounded-lg bg-muted/50",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$phone$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Phone$3e$__["Phone"], {
+                                                                className: "h-5 w-5 text-muted-foreground"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 147,
+                                                                columnNumber: 21
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "font-medium text-foreground",
+                                                                        children: state.activeDelivery.customerPhone
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 149,
+                                                                        columnNumber: 23
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "text-sm text-muted-foreground",
+                                                                        children: "Teléfono"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 150,
+                                                                        columnNumber: 23
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 148,
+                                                                columnNumber: 21
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 146,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-start gap-3 p-3 rounded-lg bg-muted/50",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                                className: "h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 155,
+                                                                columnNumber: 21
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "font-medium text-foreground",
+                                                                        children: state.activeDelivery.deliveryAddress
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 157,
+                                                                        columnNumber: 23
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "text-sm text-muted-foreground",
+                                                                        children: "Dirección de entrega"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                        lineNumber: 158,
+                                                                        columnNumber: 23
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 156,
+                                                                columnNumber: 21
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 154,
+                                                        columnNumber: 19
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 137,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "mb-6",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-sm font-medium text-muted-foreground mb-2",
+                                                        children: "Productos"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 164,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    state.activeDelivery.items.map((item, idx)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "flex justify-between py-2 border-b border-border last:border-0",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    children: [
+                                                                        item.quantity,
+                                                                        "x ",
+                                                                        item.pizza.name
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 167,
+                                                                    columnNumber: 23
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    className: "font-medium",
+                                                                    children: [
+                                                                        "$",
+                                                                        item.totalPrice.toFixed(2)
+                                                                    ]
+                                                                }, void 0, true, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 170,
+                                                                    columnNumber: 23
+                                                                }, this)
+                                                            ]
+                                                        }, idx, true, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 166,
+                                                            columnNumber: 21
+                                                        }, this))
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 163,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                                whileHover: {
+                                                    scale: 1.02
+                                                },
+                                                whileTap: {
+                                                    scale: 0.98
+                                                },
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                                    onClick: handleCompleteDelivery,
+                                                    className: "w-full bg-green-600 hover:bg-green-700",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__["CheckCircle2"], {
+                                                            className: "h-4 w-4 mr-2"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 177,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        "Marcar como entregado"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                    lineNumber: 176,
+                                                    columnNumber: 19
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 175,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 129,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 118,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                        lineNumber: 112,
+                        columnNumber: 11
+                    }, this) : /* Pedidos disponibles */ /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                className: "font-semibold text-lg text-foreground mb-4 flex items-center gap-2",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$package$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Package$3e$__["Package"], {
+                                        className: "h-5 w-5"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 188,
+                                        columnNumber: 15
+                                    }, this),
+                                    "Entregas disponibles",
+                                    state.availableOrders.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground",
+                                        children: state.availableOrders.length
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 191,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 187,
+                                columnNumber: 13
+                            }, this),
+                            state.availableOrders.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                initial: {
+                                    opacity: 0
+                                },
+                                animate: {
+                                    opacity: 1
+                                },
+                                className: "text-center py-16 bg-card border border-border rounded-xl",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bike$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Bike$3e$__["Bike"], {
+                                        className: "h-16 w-16 text-muted-foreground/30 mx-auto mb-4"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 203,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                        className: "font-medium text-foreground mb-1",
+                                        children: "No hay entregas disponibles"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 204,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-muted-foreground",
+                                        children: "Las nuevas entregas aparecerán aquí"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 205,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 198,
+                                columnNumber: 15
+                            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "grid md:grid-cols-2 gap-4",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
+                                    mode: "popLayout",
                                     children: state.availableOrders.map((order)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
                                             layout: true,
                                             initial: {
-                                                opacity: 0,
-                                                y: 10
+                                                x: -20,
+                                                opacity: 0
                                             },
                                             animate: {
-                                                opacity: 1,
-                                                y: 0
+                                                x: 0,
+                                                opacity: 1
                                             },
                                             exit: {
-                                                opacity: 0,
-                                                scale: 0.9
+                                                x: 20,
+                                                opacity: 0
                                             },
-                                            className: "bg-card border border-border rounded-xl p-5",
+                                            className: "bg-card border border-border rounded-xl p-4",
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "flex justify-between items-start mb-4",
+                                                    className: "flex items-center justify-between mb-3",
                                                     children: [
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                            className: "font-mono font-bold",
+                                                            className: "font-mono text-sm font-bold text-primary",
                                                             children: [
                                                                 "#",
                                                                 order.id.slice(-6)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                            lineNumber: 91,
-                                                            columnNumber: 23
+                                                            lineNumber: 220,
+                                                            columnNumber: 25
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "flex items-center gap-1 text-sm text-muted-foreground",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$clock$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Clock$3e$__["Clock"], {
+                                                                    className: "h-3.5 w-3.5"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 222,
+                                                                    columnNumber: 27
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    children: "~15 min"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 223,
+                                                                    columnNumber: 27
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 221,
+                                                            columnNumber: 25
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                    lineNumber: 219,
+                                                    columnNumber: 23
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "space-y-2 mb-4",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "flex items-center gap-2 text-sm",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"], {
+                                                                    className: "h-4 w-4 text-muted-foreground"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 229,
+                                                                    columnNumber: 27
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    children: order.customerName
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 230,
+                                                                    columnNumber: 27
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 228,
+                                                            columnNumber: 25
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "flex items-start gap-2 text-sm",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                                    className: "h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 233,
+                                                                    columnNumber: 27
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                    className: "text-muted-foreground",
+                                                                    children: order.deliveryAddress
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                    lineNumber: 234,
+                                                                    columnNumber: 27
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 232,
+                                                            columnNumber: 25
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                    lineNumber: 227,
+                                                    columnNumber: 23
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "flex items-center justify-between mb-4",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            className: "text-sm text-muted-foreground",
+                                                            children: [
+                                                                order.items.length,
+                                                                " producto",
+                                                                order.items.length !== 1 ? "s" : ""
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                            lineNumber: 239,
+                                                            columnNumber: 25
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                            className: "text-green-500 font-bold text-lg",
+                                                            className: "font-bold text-foreground",
                                                             children: [
                                                                 "$",
                                                                 order.totalPrice.toFixed(2)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                            lineNumber: 92,
-                                                            columnNumber: 23
+                                                            lineNumber: 242,
+                                                            columnNumber: 25
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 90,
-                                                    columnNumber: 21
+                                                    lineNumber: 238,
+                                                    columnNumber: 23
                                                 }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                    className: "flex items-center gap-2 text-sm text-muted-foreground mb-4",
-                                                    children: [
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
-                                                            className: "h-4 w-4"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                            lineNumber: 95,
-                                                            columnNumber: 23
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                            className: "truncate",
-                                                            children: order.deliveryAddress
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                            lineNumber: 96,
-                                                            columnNumber: 23
-                                                        }, this)
-                                                    ]
-                                                }, void 0, true, {
-                                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 94,
-                                                    columnNumber: 21
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
-                                                    onClick: ()=>acceptOrder(order.id),
-                                                    className: "w-full bg-primary hover:bg-primary/90",
-                                                    children: "ACEPTAR PEDIDO"
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                                    whileHover: {
+                                                        scale: 1.02
+                                                    },
+                                                    whileTap: {
+                                                        scale: 0.98
+                                                    },
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                                        onClick: ()=>handleAcceptDelivery(order.id),
+                                                        className: "w-full bg-secondary text-secondary-foreground hover:bg-secondary/90",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__["Navigation"], {
+                                                                className: "h-4 w-4 mr-2"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                                lineNumber: 250,
+                                                                columnNumber: 27
+                                                            }, this),
+                                                            "Aceptar entrega"
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 246,
+                                                        columnNumber: 25
+                                                    }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                                    lineNumber: 98,
-                                                    columnNumber: 21
+                                                    lineNumber: 245,
+                                                    columnNumber: 23
                                                 }, this)
                                             ]
                                         }, order.id, true, {
                                             fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                            lineNumber: 82,
-                                            columnNumber: 19
+                                            lineNumber: 211,
+                                            columnNumber: 21
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 80,
-                                    columnNumber: 15
-                                }, this),
-                                state.availableOrders.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "col-span-full py-12 text-center text-muted-foreground italic border border-dashed rounded-xl",
-                                    children: "Esperando nuevos pedidos de la cocina..."
-                                }, void 0, false, {
-                                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                                    lineNumber: 108,
+                                    lineNumber: 209,
                                     columnNumber: 17
                                 }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/components/driver/driver-dashboard.tsx",
-                            lineNumber: 79,
-                            columnNumber: 13
-                        }, this)
-                    ]
-                }, void 0, true, {
-                    fileName: "[project]/components/driver/driver-dashboard.tsx",
-                    lineNumber: 74,
-                    columnNumber: 11
-                }, this)
-            }, void 0, false, {
+                            }, void 0, false, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 208,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                        lineNumber: 186,
+                        columnNumber: 11
+                    }, this),
+                    state.completedDeliveries.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "mt-8",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                className: "font-semibold text-lg text-foreground mb-4 flex items-center gap-2",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__["CheckCircle2"], {
+                                        className: "h-5 w-5 text-green-500"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 266,
+                                        columnNumber: 15
+                                    }, this),
+                                    "Completadas hoy"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 265,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "space-y-2",
+                                children: state.completedDeliveries.slice(0, 5).map((order)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
+                                        initial: {
+                                            opacity: 0,
+                                            y: -10
+                                        },
+                                        animate: {
+                                            opacity: 1,
+                                            y: 0
+                                        },
+                                        className: "flex items-center justify-between p-3 bg-card border border-border rounded-lg",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-3",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__["CheckCircle2"], {
+                                                        className: "h-5 w-5 text-green-500"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 278,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "font-mono text-sm font-medium",
+                                                        children: [
+                                                            "#",
+                                                            order.id.slice(-6)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 279,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "text-sm text-muted-foreground",
+                                                        children: order.customerName
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                        lineNumber: 280,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 277,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-sm font-medium text-green-600",
+                                                children: "+$5.50"
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                                lineNumber: 282,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, order.id, true, {
+                                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                        lineNumber: 271,
+                                        columnNumber: 17
+                                    }, this))
+                            }, void 0, false, {
+                                fileName: "[project]/components/driver/driver-dashboard.tsx",
+                                lineNumber: 269,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/components/driver/driver-dashboard.tsx",
+                        lineNumber: 264,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
                 fileName: "[project]/components/driver/driver-dashboard.tsx",
-                lineNumber: 29,
+                lineNumber: 88,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/driver/driver-dashboard.tsx",
-        lineNumber: 14,
+        lineNumber: 64,
         columnNumber: 5
     }, this);
 }
-_s(DriverDashboardContent, "84lekIBpONWENvbmOsfBMLBnxC8=", false, function() {
+_s(DriverDashboardContent, "8GVKlRUQmTUToYZ6pUN7JP4KtQQ=", false, function() {
     return [
-        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useDriverStore"]
+        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useDriverStore"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$hooks$2f$use$2d$toast$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"]
     ];
 });
 _c = DriverDashboardContent;
@@ -1371,12 +1993,12 @@ function DriverDashboard() {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$driver$2d$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DriverStoreProvider"], {
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DriverDashboardContent, {}, void 0, false, {
             fileName: "[project]/components/driver/driver-dashboard.tsx",
-            lineNumber: 123,
+            lineNumber: 296,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/components/driver/driver-dashboard.tsx",
-        lineNumber: 122,
+        lineNumber: 295,
         columnNumber: 5
     }, this);
 }

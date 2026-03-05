@@ -179,7 +179,6 @@ const AppStateContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$pro
 const AppDispatchContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(null);
 function AppStoreProvider({ children }) {
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useReducer"])(appReducer, initialState);
-    // Cargar carrito desde localStorage al iniciar
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         const savedCart = localStorage.getItem("imperial-pizzeria-cart");
         if (savedCart) {
@@ -196,13 +195,11 @@ function AppStoreProvider({ children }) {
             }
         }
     }, []);
-    // Guardar carrito automáticamente cuando cambie
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         localStorage.setItem("imperial-pizzeria-cart", JSON.stringify(state.cart));
     }, [
         state.cart
     ]);
-    // Sincronizar usuario desde PocketBase AuthStore
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         if (__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].authStore.model) {
             const user = {
@@ -219,6 +216,47 @@ function AppStoreProvider({ children }) {
             });
         }
     }, []);
+    // Cargar pedido activo desde la BD si existe
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        const loadActiveOrder = async ()=>{
+            if (!state.user) return;
+            try {
+                const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").getList(1, 1, {
+                    filter: `users = "${state.user.id}" && status != "delivered" && status != "cancelled"`,
+                    sort: "-created"
+                });
+                if (orders.items.length > 0) {
+                    dispatch({
+                        type: "SET_ACTIVE_ORDER",
+                        payload: orders.items[0]
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading active order:", error);
+            }
+        };
+        loadActiveOrder();
+    }, [
+        state.user
+    ]);
+    // Suscripción al pedido activo
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        if (!state.activeOrder) return;
+        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) return;
+        const unsubscribe = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe(state.activeOrder.id, (e)=>{
+            if (e.action === "update") {
+                dispatch({
+                    type: "UPDATE_ORDER",
+                    payload: e.record
+                });
+            }
+        });
+        return ()=>{
+            __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").unsubscribe(state.activeOrder.id);
+        };
+    }, [
+        state.activeOrder
+    ]);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStateContext.Provider, {
         value: state,
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AppDispatchContext.Provider, {
@@ -226,12 +264,12 @@ function AppStoreProvider({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/lib/store/app-store.tsx",
-            lineNumber: 137,
+            lineNumber: 163,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/lib/store/app-store.tsx",
-        lineNumber: 136,
+        lineNumber: 162,
         columnNumber: 5
     }, this);
 }
@@ -254,12 +292,40 @@ function useAppStore() {
             payload: true
         });
         try {
-            // Sincronización Real con PocketBase
-            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").create({
-                ...orderData,
+            // Deducir puntos usados
+            if (orderData.pointsUsed > 0 && state.user) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
+                    points: (state.user.points || 0) - orderData.pointsUsed
+                });
+                dispatch({
+                    type: "USE_POINTS",
+                    payload: orderData.pointsUsed
+                });
+            }
+            const recordData = {
                 status: "pending",
-                user: state.user?.id
-            });
+                orderMode: orderData.orderMode,
+                users: state.user?.id,
+                items: JSON.stringify(orderData.items),
+                totalPrice: orderData.totalPrice,
+                deliveryAddress: orderData.deliveryAddress,
+                customerName: orderData.customerName,
+                customerPhone: orderData.customerPhone,
+                coordinates: JSON.stringify(orderData.coordinates),
+                paymentMethod: orderData.paymentMethod,
+                estimatedDelivery: orderData.estimatedDelivery
+            };
+            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").create(recordData);
+            // Añadir puntos ganados
+            if (orderData.pointsEarned > 0 && state.user) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
+                    points: (state.user.points || 0) + orderData.pointsEarned
+                });
+                dispatch({
+                    type: "ADD_POINTS",
+                    payload: orderData.pointsEarned
+                });
+            }
             const newOrder = {
                 ...orderData,
                 id: record.id,

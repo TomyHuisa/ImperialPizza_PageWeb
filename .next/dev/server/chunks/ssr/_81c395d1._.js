@@ -2788,7 +2788,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$wine$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Wine$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/wine.js [app-ssr] (ecmascript) <export default as Wine>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$cake$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Cake$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/cake.js [app-ssr] (ecmascript) <export default as Cake>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$loader$2d$circle$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Loader2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/loader-circle.js [app-ssr] (ecmascript) <export default as Loader2>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/data/pocketbase.ts [app-ssr] (ecmascript)"); // Importamos PocketBase
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/data/pocketbase.ts [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2f$app$2d$store$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/store/app-store.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$pizza$2f$pizza$2d$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/pizza/pizza-card.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$pizza$2f$customize$2d$modal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/pizza/customize-modal.tsx [app-ssr] (ecmascript)");
@@ -2903,6 +2903,26 @@ function MenuCatalog() {
         setSelectedPizza(pizza);
         setIsModalOpen(true);
     };
+    const handleAddToCart = (pizza, toppings, quantity)=>{
+        // Calcular precio total: pizza base + toppings
+        const toppingsPrice = toppings.reduce((sum, t)=>sum + t.price, 0);
+        const totalPrice = (pizza.price + toppingsPrice) * quantity;
+        const cartItem = {
+            id: `${pizza.id}-${Date.now()}`,
+            pizza,
+            quantity,
+            selectedToppings: toppings,
+            totalPrice
+        };
+        dispatch({
+            type: "ADD_TO_CART",
+            payload: cartItem
+        });
+        toast({
+            title: "Added to cart",
+            description: `${quantity}x ${pizza.name} with custom toppings`
+        });
+    };
     const handleQuickAdd = (pizza)=>{
         const cartItem = {
             id: `${pizza.id}-${Date.now()}`,
@@ -2970,7 +2990,7 @@ function MenuCatalog() {
                     className: "h-10 w-10 animate-spin text-primary mb-4"
                 }, void 0, false, {
                     fileName: "[project]/components/menu/menu-catalog.tsx",
-                    lineNumber: 144,
+                    lineNumber: 164,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2978,13 +2998,13 @@ function MenuCatalog() {
                     children: "Loading our delicious menu..."
                 }, void 0, false, {
                     fileName: "[project]/components/menu/menu-catalog.tsx",
-                    lineNumber: 145,
+                    lineNumber: 165,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/components/menu/menu-catalog.tsx",
-            lineNumber: 143,
+            lineNumber: 163,
             columnNumber: 7
         }, this);
     }
@@ -3003,7 +3023,7 @@ function MenuCatalog() {
                                         className: "h-6 w-6 text-primary"
                                     }, void 0, false, {
                                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                                        lineNumber: 156,
+                                        lineNumber: 176,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -3011,13 +3031,13 @@ function MenuCatalog() {
                                         children: "Our Pizzas"
                                     }, void 0, false, {
                                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                                        lineNumber: 157,
+                                        lineNumber: 177,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 155,
+                                lineNumber: 175,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3028,18 +3048,18 @@ function MenuCatalog() {
                                         children: category.label
                                     }, category.id, false, {
                                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                                        lineNumber: 162,
+                                        lineNumber: 182,
                                         columnNumber: 15
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 160,
+                                lineNumber: 180,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 154,
+                        lineNumber: 174,
                         columnNumber: 9
                     }, this),
                     filteredPizzas.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3049,12 +3069,12 @@ function MenuCatalog() {
                             children: "No pizzas found in this category."
                         }, void 0, false, {
                             fileName: "[project]/components/menu/menu-catalog.tsx",
-                            lineNumber: 180,
+                            lineNumber: 200,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 179,
+                        lineNumber: 199,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
@@ -3067,23 +3087,23 @@ function MenuCatalog() {
                                     onQuickAdd: handleQuickAdd
                                 }, pizza.id, false, {
                                     fileName: "[project]/components/menu/menu-catalog.tsx",
-                                    lineNumber: 186,
+                                    lineNumber: 206,
                                     columnNumber: 17
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/components/menu/menu-catalog.tsx",
-                            lineNumber: 184,
+                            lineNumber: 204,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 183,
+                        lineNumber: 203,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                lineNumber: 153,
+                lineNumber: 173,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -3106,7 +3126,7 @@ function MenuCatalog() {
                                 className: "h-6 w-6 text-primary"
                             }, void 0, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 207,
+                                lineNumber: 227,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -3114,13 +3134,13 @@ function MenuCatalog() {
                                 children: "Drinks"
                             }, void 0, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 208,
+                                lineNumber: 228,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 201,
+                        lineNumber: 221,
                         columnNumber: 9
                     }, this),
                     drinks.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3128,7 +3148,7 @@ function MenuCatalog() {
                         children: "No drinks available yet."
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 212,
+                        lineNumber: 232,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4",
@@ -3138,18 +3158,18 @@ function MenuCatalog() {
                                 onAdd: handleAddDrink
                             }, drink.id, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 216,
+                                lineNumber: 236,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 214,
+                        lineNumber: 234,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                lineNumber: 200,
+                lineNumber: 220,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -3172,7 +3192,7 @@ function MenuCatalog() {
                                 className: "h-6 w-6 text-primary"
                             }, void 0, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 230,
+                                lineNumber: 250,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -3180,13 +3200,13 @@ function MenuCatalog() {
                                 children: "Desserts"
                             }, void 0, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 231,
+                                lineNumber: 251,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 224,
+                        lineNumber: 244,
                         columnNumber: 9
                     }, this),
                     desserts.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3194,7 +3214,7 @@ function MenuCatalog() {
                         children: "No desserts available yet."
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 235,
+                        lineNumber: 255,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4",
@@ -3204,33 +3224,34 @@ function MenuCatalog() {
                                 onAdd: handleAddDessert
                             }, dessert.id, false, {
                                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                                lineNumber: 239,
+                                lineNumber: 259,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/components/menu/menu-catalog.tsx",
-                        lineNumber: 237,
+                        lineNumber: 257,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                lineNumber: 223,
+                lineNumber: 243,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$pizza$2f$customize$2d$modal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["CustomizeModal"], {
                 pizza: selectedPizza,
                 isOpen: isModalOpen,
-                onClose: ()=>setIsModalOpen(false)
+                onClose: ()=>setIsModalOpen(false),
+                onAddToCart: handleAddToCart
             }, void 0, false, {
                 fileName: "[project]/components/menu/menu-catalog.tsx",
-                lineNumber: 245,
+                lineNumber: 265,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/menu/menu-catalog.tsx",
-        lineNumber: 151,
+        lineNumber: 171,
         columnNumber: 5
     }, this);
 }

@@ -4,7 +4,6 @@ import { createContext, useContext, useReducer, useEffect, type ReactNode, type 
 import type { CartItem, Order, Notification, User } from "@/lib/types"
 import { pb } from "@/lib/data/pocketbase"
 
-// State Interface
 interface AppState {
   user: User | null
   cart: CartItem[]
@@ -14,7 +13,6 @@ interface AppState {
   isLoading: boolean
 }
 
-// Action Types
 type AppAction =
   | { type: "SET_USER"; payload: User | null }
   | { type: "ADD_TO_CART"; payload: CartItem }
@@ -92,32 +90,25 @@ function appReducer(state: AppState, action: AppAction): AppState {
 const AppStateContext = createContext<AppState | null>(null)
 const AppDispatchContext = createContext<Dispatch<AppAction> | null>(null)
 
-// IMPORTANTE: Exportamos como AppStoreProvider para solucionar tu error de compilación
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
 
-  // Cargar carrito desde localStorage al iniciar
   useEffect(() => {
     const savedCart = localStorage.getItem("imperial-pizzeria-cart")
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart)
-        dispatch({
-          type: "LOAD_FROM_STORAGE",
-          payload: { cart: parsedCart },
-        })
+        dispatch({ type: "LOAD_FROM_STORAGE", payload: { cart: parsedCart } })
       } catch (e) {
         console.error("Error cargando carrito:", e)
       }
     }
   }, [])
 
-  // Guardar carrito automáticamente cuando cambie
   useEffect(() => {
     localStorage.setItem("imperial-pizzeria-cart", JSON.stringify(state.cart))
   }, [state.cart])
 
-  // Sincronizar usuario desde PocketBase AuthStore
   useEffect(() => {
     if (pb.authStore.model) {
       const user: User = {
@@ -131,6 +122,41 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SET_USER", payload: user })
     }
   }, [])
+
+  // Cargar pedido activo desde la BD si existe
+  useEffect(() => {
+    const loadActiveOrder = async () => {
+      if (!state.user) return
+      try {
+        const orders = await pb.collection("orders").getList(1, 1, {
+          filter: `users = "${state.user.id}" && status != "delivered" && status != "cancelled"`,
+          sort: "-created",
+        })
+        if (orders.items.length > 0) {
+          dispatch({ type: "SET_ACTIVE_ORDER", payload: orders.items[0] as Order })
+        }
+      } catch (error) {
+        console.error("Error loading active order:", error)
+      }
+    }
+    loadActiveOrder()
+  }, [state.user])
+
+  // Suscripción al pedido activo
+  useEffect(() => {
+    if (!state.activeOrder) return
+    if (!pb.authStore.isValid) return
+
+    const unsubscribe = pb.collection("orders").subscribe(state.activeOrder.id, (e) => {
+      if (e.action === "update") {
+        dispatch({ type: "UPDATE_ORDER", payload: e.record as Order })
+      }
+    })
+
+    return () => {
+      pb.collection("orders").unsubscribe(state.activeOrder.id)
+    }
+  }, [state.activeOrder])
 
   return (
     <AppStateContext.Provider value={state}>
@@ -158,19 +184,49 @@ export function useAppStore() {
   const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt">) => {
     dispatch({ type: "SET_LOADING", payload: true })
     try {
-      // Sincronización Real con PocketBase
-      const record = await pb.collection("orders").create({
-        ...orderData,
+      // Deducir puntos usados
+      if (orderData.pointsUsed > 0 && state.user) {
+        await pb.collection("users").update(state.user.id, {
+          points: (state.user.points || 0) - orderData.pointsUsed,
+        })
+        dispatch({ type: "USE_POINTS", payload: orderData.pointsUsed })
+      }
+
+      const recordData = {
         status: "pending",
-        user: state.user?.id, // Relación con el usuario logueado
-      })
-      
-      const newOrder = { ...orderData, id: record.id, createdAt: record.created, updatedAt: record.updated } as Order
-      
+        orderMode: orderData.orderMode,
+        users: state.user?.id,
+        items: JSON.stringify(orderData.items),
+        totalPrice: orderData.totalPrice,
+        deliveryAddress: orderData.deliveryAddress,
+        customerName: orderData.customerName,
+        customerPhone: orderData.customerPhone,
+        coordinates: JSON.stringify(orderData.coordinates),
+        paymentMethod: orderData.paymentMethod,
+        estimatedDelivery: orderData.estimatedDelivery, // <-- asegurar que se envía
+      }
+
+      const record = await pb.collection("orders").create(recordData)
+
+      // Añadir puntos ganados
+      if (orderData.pointsEarned > 0 && state.user) {
+        await pb.collection("users").update(state.user.id, {
+          points: (state.user.points || 0) + orderData.pointsEarned,
+        })
+        dispatch({ type: "ADD_POINTS", payload: orderData.pointsEarned })
+      }
+
+      const newOrder = {
+        ...orderData,
+        id: record.id,
+        createdAt: record.created,
+        updatedAt: record.updated,
+      } as Order
+
       dispatch({ type: "ADD_ORDER", payload: newOrder })
       dispatch({ type: "SET_ACTIVE_ORDER", payload: newOrder })
       dispatch({ type: "CLEAR_CART" })
-      
+
       return { success: true, order: newOrder }
     } catch (error) {
       console.error("Error al crear pedido:", error)

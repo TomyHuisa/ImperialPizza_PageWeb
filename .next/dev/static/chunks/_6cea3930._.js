@@ -199,9 +199,11 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/data/pocketbase.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature(), _s3 = __turbopack_context__.k.signature();
 "use client";
+;
 ;
 const initialState = {
     orderQueue: [],
@@ -210,19 +212,21 @@ const initialState = {
 function kitchenReducer(state, action) {
     switch(action.type){
         case "ADD_ORDER":
-            // Add to queue sorted by timestamp
-            const newQueue = [
-                ...state.orderQueue,
-                action.payload
-            ].sort((a, b)=>new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             return {
                 ...state,
-                orderQueue: newQueue
+                orderQueue: [
+                    ...state.orderQueue,
+                    action.payload
+                ].sort((a, b)=>new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             };
         case "MARK_READY":
             {
                 const order = state.orderQueue.find((o)=>o.id === action.payload);
                 if (!order) return state;
+                // Actualizar en BD
+                __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").update(order.id, {
+                    status: "ready"
+                });
                 return {
                     orderQueue: state.orderQueue.filter((o)=>o.id !== action.payload),
                     completedOrders: [
@@ -237,7 +241,8 @@ function kitchenReducer(state, action) {
         case "SET_ORDERS":
             return {
                 ...state,
-                orderQueue: action.payload.filter((o)=>o.status === "preparing" || o.status === "confirmed")
+                orderQueue: action.payload.filter((o)=>o.status === "pending" || o.status === "confirmed" || o.status === "preparing"),
+                completedOrders: action.payload.filter((o)=>o.status === "ready" || o.status === "delivered")
             };
         default:
             return state;
@@ -248,6 +253,70 @@ const KitchenDispatchContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__
 function KitchenStoreProvider({ children }) {
     _s();
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useReducer"])(kitchenReducer, initialState);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "KitchenStoreProvider.useEffect": ()=>{
+            const loadOrders = {
+                "KitchenStoreProvider.useEffect.loadOrders": async ()=>{
+                    try {
+                        const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").getFullList({
+                            filter: 'status != "delivered"',
+                            sort: "-created"
+                        });
+                        dispatch({
+                            type: "SET_ORDERS",
+                            payload: orders
+                        });
+                    } catch (error) {
+                        console.error("Error loading orders:", error);
+                    }
+                }
+            }["KitchenStoreProvider.useEffect.loadOrders"];
+            loadOrders();
+            let unsubscribe;
+            let intervalId;
+            const setupRealtime = {
+                "KitchenStoreProvider.useEffect.setupRealtime": async ()=>{
+                    try {
+                        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) {
+                            throw new Error("No autenticado");
+                        }
+                        unsubscribe = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe("*", {
+                            "KitchenStoreProvider.useEffect.setupRealtime": (e)=>{
+                                if (e.action === "create") {
+                                    if (e.record.status !== "delivered") {
+                                        dispatch({
+                                            type: "ADD_ORDER",
+                                            payload: e.record
+                                        });
+                                    }
+                                } else if (e.action === "update") {
+                                    const record = e.record;
+                                    if (record.status === "ready") {
+                                        dispatch({
+                                            type: "MARK_READY",
+                                            payload: record.id
+                                        });
+                                    } else if (record.status === "delivered") {
+                                        loadOrders(); // refrescar
+                                    }
+                                }
+                            }
+                        }["KitchenStoreProvider.useEffect.setupRealtime"]);
+                    } catch (error) {
+                        console.warn("Error en suscripción de cocina, usando polling:", error);
+                        intervalId = setInterval(loadOrders, 5000);
+                    }
+                }
+            }["KitchenStoreProvider.useEffect.setupRealtime"];
+            setupRealtime();
+            return ({
+                "KitchenStoreProvider.useEffect": ()=>{
+                    if (unsubscribe) unsubscribe();
+                    if (intervalId) clearInterval(intervalId);
+                }
+            })["KitchenStoreProvider.useEffect"];
+        }
+    }["KitchenStoreProvider.useEffect"], []);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(KitchenStateContext.Provider, {
         value: state,
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(KitchenDispatchContext.Provider, {
@@ -255,32 +324,28 @@ function KitchenStoreProvider({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/lib/store/kitchen-store.tsx",
-            lineNumber: 58,
+            lineNumber: 110,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/lib/store/kitchen-store.tsx",
-        lineNumber: 57,
+        lineNumber: 109,
         columnNumber: 5
     }, this);
 }
-_s(KitchenStoreProvider, "6JWkGZ32UPfojeNx+xqn8ZU8A0Q=");
+_s(KitchenStoreProvider, "bgCdjuTOmPdSBRwTap80EFd9Y3U=");
 _c = KitchenStoreProvider;
 function useKitchenState() {
     _s1();
     const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(KitchenStateContext);
-    if (!context) {
-        throw new Error("useKitchenState must be used within KitchenStoreProvider");
-    }
+    if (!context) throw new Error("useKitchenState must be used within KitchenStoreProvider");
     return context;
 }
 _s1(useKitchenState, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
 function useKitchenDispatch() {
     _s2();
     const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(KitchenDispatchContext);
-    if (!context) {
-        throw new Error("useKitchenDispatch must be used within KitchenStoreProvider");
-    }
+    if (!context) throw new Error("useKitchenDispatch must be used within KitchenStoreProvider");
     return context;
 }
 _s2(useKitchenDispatch, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
