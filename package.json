@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint .",
-    "start": "next start"
+    "test": "playwright test",
+    "test:report": "playwright show-report",
+    "test:headed": "playwright test --headed",
+    "codegen": "playwright test --codegen http://localhost:3000"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
