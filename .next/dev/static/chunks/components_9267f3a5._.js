@@ -2025,25 +2025,26 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
     ]);
     if (!pizza) return null;
     const toggleTopping = (topping)=>{
-        setSelectedToppings((prev)=>{
-            const isSelected = prev.some((t)=>t.id === topping.id);
-            if (isSelected) {
-                return prev.filter((t)=>t.id !== topping.id);
-            } else {
-                if (prev.length >= 3) {
-                    toast({
-                        title: "Límite de toppings",
-                        description: "Solo puedes seleccionar hasta 3 toppings extra.",
-                        variant: "destructive"
-                    });
-                    return prev;
-                }
-                return [
-                    ...prev,
-                    topping
-                ];
-            }
-        });
+        const exists = selectedToppings.some((t)=>t.id === topping.id);
+        // remover topping
+        if (exists) {
+            setSelectedToppings((prev)=>prev.filter((t)=>t.id !== topping.id));
+            return;
+        }
+        // validar limite
+        if (selectedToppings.length >= 3) {
+            toast({
+                title: "Maximum toppings reached",
+                description: "You can only select up to 3 toppings.",
+                variant: "destructive"
+            });
+            return;
+        }
+        // agregar topping
+        setSelectedToppings((prev)=>[
+                ...prev,
+                topping
+            ]);
     };
     // Agrupar toppings por categoría
     const toppingsByCategory = toppings.reduce((acc, topping)=>{
@@ -2080,7 +2081,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                     className: "fixed inset-0 bg-black/50 z-50"
                 }, void 0, false, {
                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                    lineNumber: 76,
+                    lineNumber: 90,
                     columnNumber: 11
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
@@ -2111,7 +2112,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             className: "h-5 w-5 text-primary"
                                         }, void 0, false, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 92,
+                                            lineNumber: 106,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -2122,13 +2123,13 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 93,
+                                            lineNumber: 107,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 91,
+                                    lineNumber: 105,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2138,18 +2139,18 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                         className: "h-5 w-5"
                                     }, void 0, false, {
                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                        lineNumber: 96,
+                                        lineNumber: 110,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 95,
+                                    lineNumber: 109,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                            lineNumber: 90,
+                            lineNumber: 104,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2163,7 +2164,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             children: "Precio base:"
                                         }, void 0, false, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 103,
+                                            lineNumber: 117,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2174,13 +2175,13 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 104,
+                                            lineNumber: 118,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 102,
+                                    lineNumber: 116,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2190,7 +2191,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             children: "Toppings extra (máx. 3)"
                                         }, void 0, false, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 109,
+                                            lineNumber: 123,
                                             columnNumber: 17
                                         }, this),
                                         Object.entries(toppingsByCategory).map(([category, cats])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2201,7 +2202,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                         children: categoryNames[category] || category
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                        lineNumber: 112,
+                                                        lineNumber: 126,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2221,25 +2222,25 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                                                     className: "h-3 w-3 text-white"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                                    lineNumber: 134,
+                                                                                    lineNumber: 148,
                                                                                     columnNumber: 48
                                                                                 }, this)
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                                lineNumber: 130,
+                                                                                lineNumber: 144,
                                                                                 columnNumber: 31
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                                 children: topping.name
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                                lineNumber: 136,
+                                                                                lineNumber: 150,
                                                                                 columnNumber: 31
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                        lineNumber: 129,
+                                                                        lineNumber: 143,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2250,31 +2251,31 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                        lineNumber: 138,
+                                                                        lineNumber: 152,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 ]
                                                             }, topping.id, true, {
                                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                                lineNumber: 119,
+                                                                lineNumber: 133,
                                                                 columnNumber: 27
                                                             }, this);
                                                         })
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                        lineNumber: 115,
+                                                        lineNumber: 129,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, category, true, {
                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                lineNumber: 111,
+                                                lineNumber: 125,
                                                 columnNumber: 19
                                             }, this))
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 108,
+                                    lineNumber: 122,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2284,7 +2285,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                             children: "Cantidad"
                                         }, void 0, false, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 149,
+                                            lineNumber: 163,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2299,12 +2300,12 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                         className: "h-4 w-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                        lineNumber: 157,
+                                                        lineNumber: 171,
                                                         columnNumber: 21
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                    lineNumber: 151,
+                                                    lineNumber: 165,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2312,7 +2313,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                     children: quantity
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                    lineNumber: 159,
+                                                    lineNumber: 173,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2323,24 +2324,24 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                         className: "h-4 w-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                        lineNumber: 165,
+                                                        lineNumber: 179,
                                                         columnNumber: 21
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                    lineNumber: 160,
+                                                    lineNumber: 174,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                                            lineNumber: 150,
+                                            lineNumber: 164,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 148,
+                                    lineNumber: 162,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2352,7 +2353,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                 children: "Total:"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                lineNumber: 173,
+                                                lineNumber: 187,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2363,24 +2364,24 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/pizza/customize-modal.tsx",
-                                                lineNumber: 174,
+                                                lineNumber: 188,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/pizza/customize-modal.tsx",
-                                        lineNumber: 172,
+                                        lineNumber: 186,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 171,
+                                    lineNumber: 185,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                            lineNumber: 100,
+                            lineNumber: 114,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2393,7 +2394,7 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                     children: "Cancelar"
                                 }, void 0, false, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 180,
+                                    lineNumber: 194,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -2402,26 +2403,26 @@ function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }) {
                                     children: "Añadir al carrito"
                                 }, void 0, false, {
                                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                                    lineNumber: 183,
+                                    lineNumber: 197,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/pizza/customize-modal.tsx",
-                            lineNumber: 179,
+                            lineNumber: 193,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/pizza/customize-modal.tsx",
-                    lineNumber: 84,
+                    lineNumber: 98,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true)
     }, void 0, false, {
         fileName: "[project]/components/pizza/customize-modal.tsx",
-        lineNumber: 73,
+        lineNumber: 87,
         columnNumber: 5
     }, this);
 }

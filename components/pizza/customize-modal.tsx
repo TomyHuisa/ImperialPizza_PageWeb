@@ -29,23 +29,37 @@ export function CustomizeModal({ pizza, isOpen, onClose, onAddToCart, toppings }
   if (!pizza) return null
 
   const toggleTopping = (topping: Topping) => {
-    setSelectedToppings(prev => {
-      const isSelected = prev.some(t => t.id === topping.id)
-      if (isSelected) {
-        return prev.filter(t => t.id !== topping.id)
-      } else {
-        if (prev.length >= 3) {
-          toast({
-            title: "Límite de toppings",
-            description: "Solo puedes seleccionar hasta 3 toppings extra.",
-            variant: "destructive",
-          })
-          return prev
-        }
-        return [...prev, topping]
-      }
-    })
+
+  const exists = selectedToppings.some(t => t.id === topping.id)
+
+  // remover topping
+  if (exists) {
+
+    setSelectedToppings(prev =>
+      prev.filter(t => t.id !== topping.id)
+    )
+
+    return
   }
+
+  // validar limite
+  if (selectedToppings.length >= 3) {
+
+    toast({
+      title: "Maximum toppings reached",
+      description: "You can only select up to 3 toppings.",
+      variant: "destructive"
+    })
+
+    return
+  }
+
+  // agregar topping
+  setSelectedToppings(prev => [
+    ...prev,
+    topping
+  ])
+}
 
   // Agrupar toppings por categoría
   const toppingsByCategory = toppings.reduce((acc, topping) => {

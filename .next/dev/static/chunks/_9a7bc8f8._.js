@@ -82,6 +82,14 @@ function appReducer(state, action) {
                         quantity: action.payload.quantity
                     } : item)
             };
+        case "UPDATE_CART_ITEM_POINTS":
+            return {
+                ...state,
+                cart: state.cart.map((item)=>item.id === action.payload.id ? {
+                        ...item,
+                        pointsUsed: action.payload.pointsUsed
+                    } : item)
+            };
         case "CLEAR_CART":
             return {
                 ...state,
@@ -156,11 +164,11 @@ function appReducer(state, action) {
             return state;
     }
 }
-const AppStateContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(null);
-const AppDispatchContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(null);
+const AppStoreContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(null);
 function AppStoreProvider({ children }) {
     _s();
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useReducer"])(appReducer, initialState);
+    // cargar carrito local
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             const savedCart = localStorage.getItem("imperial-pizzeria-cart");
@@ -179,6 +187,7 @@ function AppStoreProvider({ children }) {
             }
         }
     }["AppStoreProvider.useEffect"], []);
+    // guardar carrito
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             localStorage.setItem("imperial-pizzeria-cart", JSON.stringify(state.cart));
@@ -186,6 +195,7 @@ function AppStoreProvider({ children }) {
     }["AppStoreProvider.useEffect"], [
         state.cart
     ]);
+    // cargar usuario
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AppStoreProvider.useEffect": ()=>{
             if (__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.model) {
@@ -204,100 +214,13 @@ function AppStoreProvider({ children }) {
             }
         }
     }["AppStoreProvider.useEffect"], []);
-    // Cargar pedido activo desde la BD si existe
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
-        "AppStoreProvider.useEffect": ()=>{
-            const loadActiveOrder = {
-                "AppStoreProvider.useEffect.loadActiveOrder": async ()=>{
-                    if (!state.user) return;
-                    try {
-                        const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").getList(1, 1, {
-                            filter: `users = "${state.user.id}" && status != "delivered" && status != "cancelled"`,
-                            sort: "-created"
-                        });
-                        if (orders.items.length > 0) {
-                            dispatch({
-                                type: "SET_ACTIVE_ORDER",
-                                payload: orders.items[0]
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Error loading active order:", error);
-                    }
-                }
-            }["AppStoreProvider.useEffect.loadActiveOrder"];
-            loadActiveOrder();
-        }
-    }["AppStoreProvider.useEffect"], [
-        state.user
-    ]);
-    // Suscripción al pedido activo
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
-        "AppStoreProvider.useEffect": ()=>{
-            if (!state.activeOrder) return;
-            if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) return;
-            const unsubscribe = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe(state.activeOrder.id, {
-                "AppStoreProvider.useEffect.unsubscribe": (e)=>{
-                    if (e.action === "update") {
-                        dispatch({
-                            type: "UPDATE_ORDER",
-                            payload: e.record
-                        });
-                    }
-                }
-            }["AppStoreProvider.useEffect.unsubscribe"]);
-            return ({
-                "AppStoreProvider.useEffect": ()=>{
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").unsubscribe(state.activeOrder.id);
-                }
-            })["AppStoreProvider.useEffect"];
-        }
-    }["AppStoreProvider.useEffect"], [
-        state.activeOrder
-    ]);
-    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStateContext.Provider, {
-        value: state,
-        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppDispatchContext.Provider, {
-            value: dispatch,
-            children: children
-        }, void 0, false, {
-            fileName: "[project]/lib/store/app-store.tsx",
-            lineNumber: 163,
-            columnNumber: 7
-        }, this)
-    }, void 0, false, {
-        fileName: "[project]/lib/store/app-store.tsx",
-        lineNumber: 162,
-        columnNumber: 5
-    }, this);
-}
-_s(AppStoreProvider, "pVdZ2vZIFi1rNSxR7NBIbe5q6YM=");
-_c = AppStoreProvider;
-function useAppState() {
-    _s1();
-    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AppStateContext);
-    if (!context) throw new Error("useAppState must be used within AppStoreProvider");
-    return context;
-}
-_s1(useAppState, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
-function useAppDispatch() {
-    _s2();
-    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AppDispatchContext);
-    if (!context) throw new Error("useAppDispatch must be used within AppStoreProvider");
-    return context;
-}
-_s2(useAppDispatch, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
-function useAppStore() {
-    _s3();
-    const state = useAppState();
-    const dispatch = useAppDispatch();
+    // crear pedido
     const createOrder = async (orderData)=>{
         dispatch({
             type: "SET_LOADING",
             payload: true
         });
         try {
-            // Deducir puntos usados
             if (orderData.pointsUsed > 0 && state.user) {
                 await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
                     points: (state.user.points || 0) - orderData.pointsUsed
@@ -307,7 +230,7 @@ function useAppStore() {
                     payload: orderData.pointsUsed
                 });
             }
-            const recordData = {
+            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").create({
                 status: "pending",
                 orderMode: orderData.orderMode,
                 users: state.user?.id,
@@ -319,9 +242,7 @@ function useAppStore() {
                 coordinates: JSON.stringify(orderData.coordinates),
                 paymentMethod: orderData.paymentMethod,
                 estimatedDelivery: orderData.estimatedDelivery
-            };
-            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("orders").create(recordData);
-            // Añadir puntos ganados
+            });
             if (orderData.pointsEarned > 0 && state.user) {
                 await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
                     points: (state.user.points || 0) + orderData.pointsEarned
@@ -353,7 +274,7 @@ function useAppStore() {
                 order: newOrder
             };
         } catch (error) {
-            console.error("Error al crear pedido:", error);
+            console.error("Error creando pedido:", error);
             return {
                 success: false,
                 error
@@ -365,18 +286,42 @@ function useAppStore() {
             });
         }
     };
-    return {
-        state,
-        dispatch,
-        createOrder
-    };
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStoreContext.Provider, {
+        value: {
+            state,
+            dispatch,
+            createOrder
+        },
+        children: children
+    }, void 0, false, {
+        fileName: "[project]/lib/store/app-store.tsx",
+        lineNumber: 289,
+        columnNumber: 5
+    }, this);
 }
-_s3(useAppStore, "idptglA9BaW9KWEo+FD2HI13g14=", false, function() {
-    return [
-        useAppState,
-        useAppDispatch
-    ];
-});
+_s(AppStoreProvider, "s3jE+e7wLGXN/2uWqdAG2uRSMfA=");
+_c = AppStoreProvider;
+function useAppStore() {
+    _s1();
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppStore must be used within AppStoreProvider");
+    return context;
+}
+_s1(useAppStore, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
+function useAppState() {
+    _s2();
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppState must be used within AppStoreProvider");
+    return context.state;
+}
+_s2(useAppState, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
+function useAppDispatch() {
+    _s3();
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppDispatch must be used within AppStoreProvider");
+    return context.dispatch;
+}
+_s3(useAppDispatch, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
 var _c;
 __turbopack_context__.k.register(_c, "AppStoreProvider");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {

@@ -101,6 +101,14 @@ function appReducer(state, action) {
                         quantity: action.payload.quantity
                     } : item)
             };
+        case "UPDATE_CART_ITEM_POINTS":
+            return {
+                ...state,
+                cart: state.cart.map((item)=>item.id === action.payload.id ? {
+                        ...item,
+                        pointsUsed: action.payload.pointsUsed
+                    } : item)
+            };
         case "CLEAR_CART":
             return {
                 ...state,
@@ -175,10 +183,10 @@ function appReducer(state, action) {
             return state;
     }
 }
-const AppStateContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(null);
-const AppDispatchContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(null);
+const AppStoreContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(null);
 function AppStoreProvider({ children }) {
     const [state, dispatch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useReducer"])(appReducer, initialState);
+    // cargar carrito local
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         const savedCart = localStorage.getItem("imperial-pizzeria-cart");
         if (savedCart) {
@@ -195,11 +203,13 @@ function AppStoreProvider({ children }) {
             }
         }
     }, []);
+    // guardar carrito
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         localStorage.setItem("imperial-pizzeria-cart", JSON.stringify(state.cart));
     }, [
         state.cart
     ]);
+    // cargar usuario
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         if (__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].authStore.model) {
             const user = {
@@ -216,83 +226,13 @@ function AppStoreProvider({ children }) {
             });
         }
     }, []);
-    // Cargar pedido activo desde la BD si existe
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        const loadActiveOrder = async ()=>{
-            if (!state.user) return;
-            try {
-                const orders = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").getList(1, 1, {
-                    filter: `users = "${state.user.id}" && status != "delivered" && status != "cancelled"`,
-                    sort: "-created"
-                });
-                if (orders.items.length > 0) {
-                    dispatch({
-                        type: "SET_ACTIVE_ORDER",
-                        payload: orders.items[0]
-                    });
-                }
-            } catch (error) {
-                console.error("Error loading active order:", error);
-            }
-        };
-        loadActiveOrder();
-    }, [
-        state.user
-    ]);
-    // Suscripción al pedido activo
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        if (!state.activeOrder) return;
-        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].authStore.isValid) return;
-        const unsubscribe = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").subscribe(state.activeOrder.id, (e)=>{
-            if (e.action === "update") {
-                dispatch({
-                    type: "UPDATE_ORDER",
-                    payload: e.record
-                });
-            }
-        });
-        return ()=>{
-            __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").unsubscribe(state.activeOrder.id);
-        };
-    }, [
-        state.activeOrder
-    ]);
-    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStateContext.Provider, {
-        value: state,
-        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AppDispatchContext.Provider, {
-            value: dispatch,
-            children: children
-        }, void 0, false, {
-            fileName: "[project]/lib/store/app-store.tsx",
-            lineNumber: 163,
-            columnNumber: 7
-        }, this)
-    }, void 0, false, {
-        fileName: "[project]/lib/store/app-store.tsx",
-        lineNumber: 162,
-        columnNumber: 5
-    }, this);
-}
-function useAppState() {
-    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(AppStateContext);
-    if (!context) throw new Error("useAppState must be used within AppStoreProvider");
-    return context;
-}
-function useAppDispatch() {
-    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(AppDispatchContext);
-    if (!context) throw new Error("useAppDispatch must be used within AppStoreProvider");
-    return context;
-}
-function useAppStore() {
-    const state = useAppState();
-    const dispatch = useAppDispatch();
+    // crear pedido
     const createOrder = async (orderData)=>{
         dispatch({
             type: "SET_LOADING",
             payload: true
         });
         try {
-            // Deducir puntos usados
             if (orderData.pointsUsed > 0 && state.user) {
                 await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
                     points: (state.user.points || 0) - orderData.pointsUsed
@@ -302,7 +242,7 @@ function useAppStore() {
                     payload: orderData.pointsUsed
                 });
             }
-            const recordData = {
+            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").create({
                 status: "pending",
                 orderMode: orderData.orderMode,
                 users: state.user?.id,
@@ -314,9 +254,7 @@ function useAppStore() {
                 coordinates: JSON.stringify(orderData.coordinates),
                 paymentMethod: orderData.paymentMethod,
                 estimatedDelivery: orderData.estimatedDelivery
-            };
-            const record = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("orders").create(recordData);
-            // Añadir puntos ganados
+            });
             if (orderData.pointsEarned > 0 && state.user) {
                 await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$data$2f$pocketbase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["pb"].collection("users").update(state.user.id, {
                     points: (state.user.points || 0) + orderData.pointsEarned
@@ -348,7 +286,7 @@ function useAppStore() {
                 order: newOrder
             };
         } catch (error) {
-            console.error("Error al crear pedido:", error);
+            console.error("Error creando pedido:", error);
             return {
                 success: false,
                 error
@@ -360,11 +298,33 @@ function useAppStore() {
             });
         }
     };
-    return {
-        state,
-        dispatch,
-        createOrder
-    };
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AppStoreContext.Provider, {
+        value: {
+            state,
+            dispatch,
+            createOrder
+        },
+        children: children
+    }, void 0, false, {
+        fileName: "[project]/lib/store/app-store.tsx",
+        lineNumber: 289,
+        columnNumber: 5
+    }, this);
+}
+function useAppStore() {
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppStore must be used within AppStoreProvider");
+    return context;
+}
+function useAppState() {
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppState must be used within AppStoreProvider");
+    return context.state;
+}
+function useAppDispatch() {
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(AppStoreContext);
+    if (!context) throw new Error("useAppDispatch must be used within AppStoreProvider");
+    return context.dispatch;
 }
 }),
 "[project]/lib/store/points-context.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {
