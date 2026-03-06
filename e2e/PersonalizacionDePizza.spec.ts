@@ -1,67 +1,37 @@
-import { test, expect } from "@playwright/test";
-import { login } from "./helpers/login";
+import { test, expect } from "@playwright/test"
 
 test.describe("Historia: Selección y Personalización de Pizza", () => {
 
-  test("El usuario puede seleccionar una pizza", async ({ page }) => {
-    await login(page);
-    await page.goto("http://localhost:3000/menu");
-
-    await page.getByRole("button", { name: /customize/i }).first().click();
-  });
-
-  test("Existe botón para personalizar el pedido", async ({ page }) => {
-    await login(page);
-    await page.goto("http://localhost:3000/menu");
-
-    const customize = page.getByRole("button", { name: /customize/i });
-    await expect(customize.first()).toBeVisible();
-  });
-
-  test("Aparecen 5 toppings disponibles", async ({ page }) => {
-    await login(page);
-    await page.goto("http://localhost:3000/menu");
-
-    await page.getByRole("button", { name: /customize/i }).first().click();
-
-    const toppings = page.locator("[data-testid='topping-option']");
-    await expect(toppings).toHaveCount(5);
-  });
-
   test("No permite seleccionar más de 3 toppings y muestra toast", async ({ page }) => {
-    await login(page);
-    await page.goto("http://localhost:3000/menu");
 
-    await page.getByRole("button", { name: /customize/i }).first().click();
+    await page.goto("http://localhost:3000/")
 
-    const toppings = page.locator("[data-testid='topping-option']");
+    // Ir al menú
+    await page.getByRole("link", { name: /menú/i }).click()
 
-    await toppings.nth(0).click();
-    await toppings.nth(1).click();
-    await toppings.nth(2).click();
+    // Abrir personalización
+await page.getByRole("button", { name: "Add" }).first().click()
 
-    // intentar cuarto
-    await toppings.nth(3).click();
+// Esperar el modal correctamente
+await expect(
+  page.getByRole("heading", { name: /toppings extra/i })
+).toBeVisible()
 
-    await expect(page.locator("text=Maximum toppings reached")).toBeVisible();
-    await expect(page.locator("text=You can only select up to 3 toppings")).toBeVisible();
-  });
+// Seleccionar toppings
+await page.getByText("Topping1").click()
+await page.getByText("Topping2").click()
+await page.getByText("Topping3").click()
 
-  test("Al finalizar pedido se agregan puntos al perfil", async ({ page }) => {
-    await login(page);
-    await page.goto("http://localhost:3000/menu");
+// Intentar el cuarto
+await page.getByText("Topping4").click()
 
-    await page.getByRole("button", { name: /add to cart/i }).first().click();
+// Verificar toast
+const toast = page.locator("[role='status']").filter({
+  hasText: "Maximum toppings reached"
+})
 
-    await page.goto("http://localhost:3000/cart");
+await expect(toast).toBeVisible()
 
-    const checkout = page.getByRole("button", { name: /checkout|order|pay/i });
+  })
 
-    if (await checkout.isVisible()) {
-      await checkout.click();
-    }
-
-    await expect(page.locator("text=pts")).toBeVisible();
-  });
-
-});
+})

@@ -4,16 +4,15 @@ export async function login(page: Page) {
 
   await page.goto("http://localhost:3000/login")
 
-  // Esperar que aparezca el formulario
+  // esperar inputs
   await page.waitForSelector("#email")
 
-  // llenar credenciales
   await page.locator("#email").fill("customer@imperial.pizza")
   await page.locator("#password").fill("12345678")
 
-  // click login
-  await page.getByRole("button", { name: /login|sign in/i }).click()
+  // botón correcto
+  await page.getByRole("button", { name: /iniciar sesión/i }).click()
 
-  // esperar redirección al home
-  await page.waitForURL("**/")
+  // esperar redirección
+  await page.waitForLoadState("networkidle")
 }
